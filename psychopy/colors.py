@@ -543,8 +543,11 @@ class Color:
 
     @alpha.setter
     def alpha(self, value):
-        # Treat 1x1 arrays as a float
-        if isinstance(value, np.ndarray):
+        if value is None:
+            # setting as None should do nothing
+            return
+        elif isinstance(value, np.ndarray):
+            # treat 1x1 arrays as a float
             if value.size == 1:
                 value = float(value[0])
         else:
