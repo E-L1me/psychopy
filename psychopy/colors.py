@@ -261,7 +261,6 @@ class Color:
         self._cache = {}
         self._renderCache = {}
         self.contrast = contrast if isinstance(contrast, (int, float)) else 1
-        self.alpha = 1
         self.valid = False
         self.conematrix = conematrix
 
@@ -537,7 +536,10 @@ class Color:
         """How opaque (1) or transparent (0) this color is. Synonymous with
         `opacity`.
         """
-        return self._alpha
+        if hasattr(self, "_alpha"):
+            return self._alpha
+
+        return 1
 
     @alpha.setter
     def alpha(self, value):
