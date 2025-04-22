@@ -144,10 +144,13 @@ class Preferences:
             self.paths['userPrefsDir'] = join(os.environ['APPDATA'],
                                               'psychopy3')
         else:
-            self.paths['prefsSpecFile'] = join(prefSpecDir,
-                                               platform.system() + '.spec')
-            self.paths['userPrefsDir'] = join(os.environ['HOME'],
-                                              '.psychopy3')
+            self.paths['prefsSpecFile'] = join(prefSpecDir, platform.system() + '.spec')
+            config_folder_override = os.environ.get('PSYCHOPY_CONFIG_FOLDER')
+            if config_folder_override and os.path.isdir(config_folder_override) and os.access(config_folder_override, os.R_OK | os.W_OK):
+                self.paths['userPrefsDir'] = join(config_folder_override, '.psychopy3')
+            else:
+                self.paths['userPrefsDir'] = join(os.environ['HOME'],
+                                    '.psychopy3')
 
         # directory for files created by the app at runtime needed for operation
         self.paths['userCacheDir'] = join(self.paths['userPrefsDir'], 'cache')
