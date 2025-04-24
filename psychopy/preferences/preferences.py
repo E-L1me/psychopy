@@ -101,7 +101,7 @@ class Preferences:
             print(msg % userCfg)
         self.loadAll()  # reloads, now getting all from .spec
 
-    def getPaths(self):
+    def getPaths(self, userDir=None):
         """Get the paths to various directories and files used by PsychoPy.
 
         If the paths are not found, they are created. Usually, this is only
@@ -139,24 +139,25 @@ class Preferences:
             # if there isn't an app folder at all then this is a lib-only psychopy
             # so don't try to load app prefs etc
             NO_APP = True
+        # get user dir
+        if userDir is not None and os.path.isdir(userDir):
+            self.paths['userPrefsDir'] = join(
+                userDir, '.psychopy3'
+            )
+        elif sys.platform == 'win32':
+            self.paths['userPrefsDir'] = join(
+                os.environ['APPDATA'], 'psychopy3'
+            )
+        else:
+            self.paths['userPrefsDir'] = join(
+                os.environ['HOME'], '.psychopy3'
+            )
+        # get system-appropriate spec file
         if sys.platform == 'win32':
             self.paths['prefsSpecFile'] = join(prefSpecDir, 'Windows.spec')
-            self.paths['userPrefsDir'] = join(os.environ['APPDATA'],
-                                              'psychopy3')
         else:
             self.paths['prefsSpecFile'] = join(
                 prefSpecDir, platform.system() + '.spec')
-            # Check for override of config folder via environment variable (PSYCHOPY_CONFIG_FOLDER)
-            # and set user preferences directory accordingly; otherwise, use default location.
-            config_folder_override = os.environ.get('PSYCHOPY_CONFIG_FOLDER')
-            if (config_folder_override and os.path.isdir(config_folder_override)
-                    and os.access(config_folder_override, os.R_OK | os.W_OK)):
-                self.paths['userPrefsDir'] = join(
-                    config_folder_override, '.psychopy3')
-            else:
-                self.paths['userPrefsDir'] = join(
-                    os.environ['HOME'], '.psychopy3')
-
         # directory for files created by the app at runtime needed for operation
         self.paths['userCacheDir'] = join(self.paths['userPrefsDir'], 'cache')
 
