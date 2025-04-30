@@ -261,7 +261,6 @@ class Color:
         self._cache = {}
         self._renderCache = {}
         self.contrast = contrast if isinstance(contrast, (int, float)) else 1
-        self.alpha = 1
         self.valid = False
         self.conematrix = conematrix
 
@@ -537,12 +536,18 @@ class Color:
         """How opaque (1) or transparent (0) this color is. Synonymous with
         `opacity`.
         """
-        return self._alpha
+        if hasattr(self, "_alpha"):
+            return self._alpha
+
+        return 1
 
     @alpha.setter
     def alpha(self, value):
-        # Treat 1x1 arrays as a float
-        if isinstance(value, np.ndarray):
+        if value is None:
+            # setting as None should do nothing
+            return
+        elif isinstance(value, np.ndarray):
+            # treat 1x1 arrays as a float
             if value.size == 1:
                 value = float(value[0])
         else:
