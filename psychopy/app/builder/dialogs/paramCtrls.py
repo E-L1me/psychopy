@@ -106,7 +106,7 @@ class BaseParamCtrl(wx.Panel):
             "All subclasses of BaseParamCtrl should implement `setValue`"
         )
 
-    def setWarning(self, warning):
+    def setWarning(self, warning, allowed=True):
         """
         Set a warning on the warnings handler attached to this ctrl, if any.
 
@@ -116,7 +116,7 @@ class BaseParamCtrl(wx.Panel):
             Warning to display
         """
         if self.warnings is not None:
-            self.warnings.setWarning(self, warning)
+            self.warnings.setWarning(self, warning, allowed=allowed)
     
     def clearWarning(self):
         """
@@ -344,7 +344,7 @@ class NameCtrl(SingleLineCtrl):
         if not NameSpace.isValid(self.getValue()):
             self.setWarning(_translate(
                 "Name is not valid"
-            ))
+            ), allowed=False)
             return False
         # if we have an experiment, is the name used already?
         if self.element:
@@ -357,7 +357,7 @@ class NameCtrl(SingleLineCtrl):
             if exists:
                 self.setWarning(_translate(
                     "Name is already in use ({})"
-                ).format(exists))
+                ).format(exists), allowed=False)
                 return False
         
         self.clearWarning()
@@ -1328,7 +1328,7 @@ class DictCtrl(BaseParamCtrl):
             if self.isCode:
                 self.setWarning(_translate(
                     "Dictionary keys can't be code"
-                ))
+                ), allowed=False)
                 return False
 
             return SingleLineCtrl.isValid.fget(self)
