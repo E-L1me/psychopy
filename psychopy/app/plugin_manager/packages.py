@@ -62,17 +62,16 @@ class PIPTerminalPanel(wx.Panel):
         ):
             executable = f'"{executable}"'
         # Construct preface
-        self.preface = " ".join([executable, "-m"])
+        self.preface = " ".join([executable, "-m", "pip"])
         # Add output
         self.output = wx.richtext.RichTextCtrl(
             self,
             value=_translate(
-                "Type a PIP command below and press Enter to execute it in the installed PsychoPy environment, any "
-                "returned text will appear below.\n"
+                "Type pip commands below and press Enter to execute them in the installed PsychoPy environment, any returned text will appear below. When installing, remember to add `--user` on the end!\n"
                 "\n"
                 "All commands will be automatically prefaced with:\n"
                 "{}\n"
-                "\n"
+                "(so you don't need to type it yourself)\n"
             ).format(self.preface),
             size=(480, -1),
             style=wx.TE_READONLY)
