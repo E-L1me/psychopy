@@ -1087,7 +1087,8 @@ class CodeCtrl(BaseParamCtrl, handlers.ThemeMixin):
         self.ctrl.Refresh()
 
     def validate(self):
-        return SingleLineCtrl.validate(self)
+        BaseParamCtrl.validate(self)
+        return SingleLineCtrl.validateCode(self)
         
 
 class RichChoiceCtrl(BaseParamCtrl):
