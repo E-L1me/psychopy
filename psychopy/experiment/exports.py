@@ -143,7 +143,7 @@ class NameSpace:
     # PsychoPy modules
     psychopy = psychopy.__all__ + ['psychopy', 'os']
     # all non-user builder stuff
-    nonUserBuilder = numpy + keywords + psychopy
+    nonUserBuilder = numpy + keywords + psychopy + constants
     
     def __init__(self, exp):
         """Set-up an experiment's namespace: reserved words and user space
