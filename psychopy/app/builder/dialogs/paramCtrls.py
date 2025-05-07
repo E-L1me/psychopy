@@ -299,21 +299,64 @@ class SingleLineCtrl(BaseParamCtrl):
     @property
     def isValid(self):
         if self.isCode:
-            # if code, check that it's valid Python by trying to get variables
+            # get value without any dollar syntax
+            value = experiment.getCodeFromParamStr(self.getValue(), target="PsychoPy")
+            # if blank, there's no code yet to be invalid
+            if not value:
+                self.clearWarning()
+                return True
+            # check that it's valid Python by trying to get variables
             try:
-                stringtools.getVariables(
-                    experiment.getCodeFromParamStr(self.getValue(), target="PsychoPy")
-                )
+                variables = stringtools.getVariables(value)
             except (SyntaxError, TypeError) as e:
                 # if failed to get variables, add warning and return invalid
                 self.setWarning(_translate(
-                    "Error in parameter value: {}"
-                ).format(e))
+                    "Python syntax error in field `{}`:  {}"
+                ).format(self.param.label, e))
                 return False
-            else:
-                # if succeeded, valid
-                self.clearWarning()
-                return True
+            # for multiline code, check that any variable defs don't break the namespace
+            if self.param.valType == "extendedCode":
+                # check that nothing important is being overwritten
+                if self.element:
+                    # iterate through variable defs in code (if any)
+                    for name in variables:
+                        # is it overwriting something?
+                        used = self.element.exp.namespace.exists(name)
+                        if used:
+                            # warn but allow
+                            self.setWarning(_translate(
+                                "Setting the variable `{}` will overwrite an existing variable ({})"
+                            ).format(name, used), allowed=True)
+                            return False
+            # check any dynamic parameters
+            elif self.param.allowedUpdates != "constant": 
+                try:
+                    eval(value)
+                except NameError as e:
+                    # if references a name, is it one defined before experiment start?
+                    if all([
+                        name in NameSpace.nonUserBuilder
+                        for name in stringtools.getVariables(value)
+                    ]):
+                        self.clearWarning()
+                        return True
+                    # if not, warn but allow
+                    self.setWarning(_translate(
+                        "Looks like your variable '{}' in '{}' should be set to "
+                        "update."
+                    ).format(value, self.param.label), allowed=True)
+                    return False
+                except SyntaxError as e:
+                    # any other error...
+                    self.setWarning(_translate(
+                        "Python syntax error in field `{}`"
+                    ).format(self.param.label))
+                    return False
+                else:
+                    pass
+            # if succeeded, valid
+            self.clearWarning()
+            return True
         else:
             # warn for unescaped "
             if re.findall(r"(?<!\\)[\"\']", self.getValue()):
@@ -1020,15 +1063,13 @@ class CodeCtrl(BaseParamCtrl, handlers.ThemeMixin):
     inputType = "code"
 
     def makeCtrls(self):
-        self.ctrl = BaseCodeEditor(
-            self, wx.ID_ANY, pos=wx.DefaultPosition, size=(-1, 128), style=wx.DEFAULT
+        self.ctrl = CodeBox(
+            self, wx.ID_ANY, prefs, 
+            pos=wx.DefaultPosition, size=(-1, 128), style=wx.DEFAULT
         )
         self.sizer.Add(
             self.ctrl, proportion=1, flag=wx.EXPAND | wx.ALL
         )
-        # setup lexer to style text
-        self.ctrl.SetLexer(wx.stc.STC_LEX_PYTHON)
-        self.ctrl._applyAppTheme()
         # hide margin
         self.ctrl.SetMarginWidth(0, 0)
         # set initial value
@@ -1053,6 +1094,18 @@ class CodeCtrl(BaseParamCtrl, handlers.ThemeMixin):
     def onChange(self, evt=None):
         CodeBox.OnKeyPressed(self.ctrl, evt)
         BaseParamCtrl.onChange(self, evt)
+    
+    def styleValid(self):
+        # red border if error
+        if self.isValid:
+            self.ctrl.SetFoldMarginColour(0, colors.scheme['red'])
+        else:
+            self.ctrl._applyAppTheme()
+        self.ctrl.Refresh()
+
+    @property
+    def isValid(self):
+        return SingleLineCtrl.isValid.fget(self)
         
 
 class RichChoiceCtrl(BaseParamCtrl):
