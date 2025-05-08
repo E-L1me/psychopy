@@ -549,9 +549,9 @@ class ChoiceCtrl(BaseParamCtrl):
     def populate(self):
         # convert values to a list (by executing method of just converting value)
         if callable(self.param.allowedVals):
-            choices = self.param.allowedVals()
+            choices = [str(val) for val in self.param.allowedVals()]
         else:
-            choices = list(self.param.allowedVals)
+            choices = [str(val) for val in self.param.allowedVals]
         # convert labels to a list (by executing method of just converting value)
         if callable(self.param.allowedLabels):
             labels = self.param.allowedLabels()
@@ -587,14 +587,14 @@ class ChoiceCtrl(BaseParamCtrl):
         return self.choices[self.ctrl.GetSelection()]
     
     def setValue(self, value):
-        if value not in self.choices:
+        if str(value) not in self.choices:
             # if not known, add it to possible choices
-            self.choices.append(value)
+            self.choices.append(str(value))
             self.labels.append(str(value))
             self.ctrl.SetItems(self.labels)
         # set
         self.ctrl.SetSelection(
-            self.choices.index(value)
+            self.choices.index(str(value))
         )
 
 
@@ -659,6 +659,17 @@ class FileCtrl(SingleLineCtrl):
             self.fileBtn, border=6, flag=wx.EXPAND | wx.LEFT
         )
     
+    def styleValid(self):
+        # style as normal
+        SingleLineCtrl.styleValid(self)
+        # if not code, check for a link
+        if not self.isCode:
+            if stringtools.is_url(self.getValue()):
+                self.ctrl.SetForegroundColour(
+                    colors.scheme['blue']
+                )
+                self.ctrl.Refresh()
+    
     @property
     def rootDir(self):
         # if no element, use system root
@@ -701,8 +712,13 @@ class FileCtrl(SingleLineCtrl):
         # if given as code, use regular code checking
         if self.isCode:
             return SingleLineCtrl.validateCode(self)
+        # if given a link, it's valid
+        if stringtools.is_url(self.getValue()):
+            self.clearWarning()
+            return
         # if blank, don't worry about it
         if self.getValue() == "":
+            self.clearWarning()
             return
         # if it's a string, convert to file
         try:
@@ -1292,6 +1308,9 @@ class FileListCtrl(BaseParamCtrl):
             FileCtrl.makeCtrls(self)
             # add a delete button
             self.deleteBtn = wx.Button(self, style=wx.BU_EXACTFIT)
+            self.deleteBtn.SetBitmap(
+                icons.ButtonIcon("delete", size=16, theme="light").bitmap
+            )
             self.sizer.Add(
                 self.deleteBtn, border=6, flag=wx.EXPAND | wx.LEFT
             )
@@ -1299,14 +1318,17 @@ class FileListCtrl(BaseParamCtrl):
 
             self.Layout()
         
-        def deleteSelf(self):
+        def deleteSelf(self, evt=None):
             # remove from parent sizer and array
             self.parent.items.pop(
                 self.parent.items.index(self)
             )
             self.parent.itemsSizer.Detach(self)
+            # clear any warnings
+            self.clearWarning()
             # delete
             self.Destroy()
+            self.parent.Layout()
         
         def onChange(self, evt=None):
             FileCtrl.onChange(self, evt)
@@ -1458,6 +1480,8 @@ class DictCtrl(BaseParamCtrl):
             self.parent.items.pop(
                 self.parent.items.index(self)
             )
+            # clear any warnings
+            self.clearWarning()
             # remove all windows from parent sizer
             self.parent.itemsSizer.Detach(self.keyCtrl)
             self.parent.itemsSizer.Detach(self.valueCtrl)
