@@ -549,9 +549,9 @@ class ChoiceCtrl(BaseParamCtrl):
     def populate(self):
         # convert values to a list (by executing method of just converting value)
         if callable(self.param.allowedVals):
-            choices = self.param.allowedVals()
+            choices = [str(val) for val in self.param.allowedVals()]
         else:
-            choices = list(self.param.allowedVals)
+            choices = [str(val) for val in self.param.allowedVals]
         # convert labels to a list (by executing method of just converting value)
         if callable(self.param.allowedLabels):
             labels = self.param.allowedLabels()
@@ -587,14 +587,14 @@ class ChoiceCtrl(BaseParamCtrl):
         return self.choices[self.ctrl.GetSelection()]
     
     def setValue(self, value):
-        if value not in self.choices:
+        if str(value) not in self.choices:
             # if not known, add it to possible choices
             self.choices.append(value)
             self.labels.append(str(value))
             self.ctrl.SetItems(self.labels)
         # set
         self.ctrl.SetSelection(
-            self.choices.index(value)
+            self.choices.index(str(value))
         )
 
 
