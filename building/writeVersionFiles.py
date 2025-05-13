@@ -16,7 +16,7 @@ def updateVersionFile():
     version = getSemanticVersion()
     if version != raw:
         (root/'psychopy/VERSION').write_text(version)
-        print(f"Updated version file to {final}")
+        print(f"Updated version file to {version}")
 
 def updateGitShaFile(sha=None):
     """Create psychopy/GIT_SHA

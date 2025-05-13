@@ -4,6 +4,7 @@ import pathlib
 from packaging import version
 
 root = pathlib.Path(__file__).parent.parent  # root of the repo
+VERBOSE = True
 
 def _call(cmd, verbose=False):
     result = run(cmd, capture_output=True, text=True)
@@ -116,12 +117,19 @@ def getSemanticVersion():
                 # get the number of commits since the PREV tag
                 tag = getLastTag(tag)
                 nCommits = countSince(tag)
+                if VERBOSE:
+                    print(f"Found tag for '{vernum}' after after current. Currently we are {nCommits} commits ahead of {tag}")
             elif nCommits == 0:
                 # This is the release version
                 label = ""
+                if VERBOSE:
+                    print(f"This ref is matching tag '{tag}'")
             else:
                 # This is a post-release version and nCommits is already correct
                 label = "post"
+                if VERBOSE:
+                    print(f"Found tag for '{vernum}' and we are currently {nCommits} commits ahead")
+
         # get n from prev tag an count forwards
         else:
             # If no tag exists, we need to get the number of commits since the last tag
@@ -134,19 +142,42 @@ def getSemanticVersion():
             else:
                 tag = describe  # In case no tag exists
                 nCommits = 0
+            if VERBOSE:
+                print(f"No tag for '{vernum}' but we are currently {nCommits} commits ahead of {tag}")
 
     else:
         # all other branches labelled "dev" with commits since last tag
         # if tag exists then dev branch is ahead of tag. Need version.txt update?
-        describe = getGitDescribe().split('-')[1]
+        tag = getTag(vernum)
+        if tag:
+            # If tag exists, we need to get the number of commits since the last tag
+            describe = getGitDescribe(tag)
+            nCommits = countSince(tag)
+            if VERBOSE:
+                print(f"Found tag for '{vernum}' and we are currently {nCommits} commits ahead")
+        else:
+            # If no tag exists, we need to get the number of commits since the last tag
+            label = "dev"
+            describe = getGitDescribe()
+            parts = describe.split('-')
+            nCommits = parts[1]
+            if len(parts) >= 3:
+                tag = parts[0]
+                nCommits = int(parts[1])
+            else:
+                tag = None
+            if VERBOSE:
+                print(f"No tag for '{vernum}' but we are currently {nCommits} commits ahead of {tag}")
 
-    print(f"Branch: {branch}, Tag: {tag}, Describe: {describe}, vernum: {vernum}")
+    # we have the info so build the version string
     if nCommits == 0:
-        return vernum
-    elif branch.startswith("release"):
-        return f"{vernum}post{nCommits}"
+        verStr = vernum
     else:
-        return f"{vernum}dev{nCommits}"
+        verStr = f"{vernum}{label}{nCommits}"
+    if not tag:
+        tag = "None"  # just to look nicer in the printout
+    print(f"Branch: {branch}, Vernum: {vernum}, Closest-tag: {tag}, Describe: {describe}\n Full semantic version: {verStr}")
+    return verStr
     
 if __name__ == "__main__":
     # Get the semantic version
