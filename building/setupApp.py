@@ -30,7 +30,7 @@ requires = []
 if platform != 'darwin':
     raise RuntimeError("setupApp.py is only for building Mac Standalone bundle")
 
-resources = list(root / 'psychopy/app/Resources').glob('*')
+resources = list((root / 'psychopy/app/Resources').glob('*'))
 frameworks = [ # these installed using homebrew
               find_library("libevent"),
               find_library("libmp3lame"),
