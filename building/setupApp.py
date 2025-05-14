@@ -30,7 +30,7 @@ requires = []
 if platform != 'darwin':
     raise RuntimeError("setupApp.py is only for building Mac Standalone bundle")
 
-resources = (root / 'psychopy/app/Resources').glob('*')
+resources = list(root / 'psychopy/app/Resources').glob('*')
 frameworks = [ # these installed using homebrew
               find_library("libevent"),
               find_library("libmp3lame"),
@@ -183,7 +183,7 @@ else:
     print("All packages appear to be present. Proceeding to build...")
 
 setup(
-    app=[root / 'psychopy/app/psychopyApp.py'],
+    app=[str(root / 'psychopy/app/psychopyApp.py')],
     options=dict(py2app=dict(
             includes=includes,
             packages=packages,
@@ -192,7 +192,7 @@ setup(
             argv_emulation=False,  # must be False or app bundle pauses (py2app 0.21 and 0.24 tested)
             site_packages=True,
             frameworks=frameworks,
-            iconfile= root / 'psychopy/app/Resources/psychopy.icns',
+            iconfile= str(root / 'psychopy/app/Resources/psychopy.icns'),
             plist=dict(
                   CFBundleIconFile='psychopy.icns',
                   CFBundleName               = "PsychoPy",
