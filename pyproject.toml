@@ -55,7 +55,6 @@ dependencies = [
     "freetype-py",
     "python-bidi",
     "arabic-reshaper",
-    "javascripthon",
     "websockets",  # new in 2023.2 for session.py
     # for the app
     "wxPython >= 4.1.1",
@@ -69,7 +68,7 @@ dependencies = [
     "gitpython",
     "cryptography",  # for sshkeys
     # psychoJS conversions
-    "javascripthon>=0.12",
+    "git+https://gitlab.com/peircej/metapensiero.pj",  # until fixes dukpy depend
     "astunparse",
     "esprima",
     "jedi >= 0.16",
