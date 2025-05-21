@@ -13,6 +13,7 @@ from xml.etree.ElementTree import Element
 
 from psychopy import prefs
 from psychopy.constants import FOREVER
+from psychopy.experiment.devices import DeviceMixin
 from ..params import Param
 from psychopy.experiment.utils import canBeNumeric
 from psychopy.experiment.utils import CodeGenerationException
@@ -1376,12 +1377,10 @@ class BaseComponent:
             return "thisExp"
 
 
-class BaseDeviceComponent(BaseComponent):
+class BaseDeviceComponent(BaseComponent, DeviceMixin):
     """
     Base class for most components which interface with a hardware device.
     """
-    # list of class strings (readable by DeviceManager) which this component's device could be
-    deviceClasses = []
 
     def __init__(
             self, exp, parentName,
@@ -1407,22 +1406,9 @@ class BaseDeviceComponent(BaseComponent):
             saveStartStop=saveStartStop, syncScreenRefresh=syncScreenRefresh,
             disabled=disabled
         )
-        # require hardware
-        self.exp.requirePsychopyLibs(
-            ['hardware']
-        )
-        # --- Device params ---
-        self.order += [
-            "deviceLabel"
-        ]
-        # label to refer to device by
-        self.params['deviceLabel'] = Param(
-            deviceLabel, valType="str", inputType="single", categ="Device",
-            label=_translate("Device label"),
-            hint=_translate(
-                "A label to refer to this Component's associated hardware device by. If using the "
-                "same device for multiple components, be sure to use the same label here."
-            )
+        # add device stuff
+        self.addDeviceParams(
+            defaultLabel=deviceLabel
         )
 
 
