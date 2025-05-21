@@ -1160,8 +1160,6 @@ class Experiment:
         """
         # dict in which to store usages
         usages = {}
-        # always include the default keyboard
-        usages['defaultKeyboard'] = ["psychopy.hardware.keyboard.KeyboardDevice"]
 
         def _process(emt):
             """
