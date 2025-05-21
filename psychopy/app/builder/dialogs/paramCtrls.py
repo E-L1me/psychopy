@@ -702,6 +702,7 @@ class FileCtrl(SingleLineCtrl):
         )
     
     def validate(self):
+        from psychopy.tools.filetools import defaultStim
         # start off valid
         BaseParamCtrl.validate(self)
         # if given as code, use regular code checking
@@ -728,10 +729,25 @@ class FileCtrl(SingleLineCtrl):
         if not file.is_absolute():
             file = self.rootDir / file
         # valid only if file exists
-        if not file.is_file():
+        if all((
+            not file.is_file(),
+            file.name not in defaultStim
+        )):
             self.setWarning(_translate(
                 "No file named {}"
             ).format(self.getValue()))
+
+
+class SoundCtrl(FileCtrl):
+    inputType = "soundFile"
+
+    def validate(self):
+        from psychopy.tools.audiotools import knownNoteNames
+        # validate like a normal file
+        FileCtrl.validate(self)
+        # if given a note, this is fine
+        if str(self.getValue()).capitalize() in knownNoteNames:
+            self.clearWarning()
 
 
 class TableCtrl(FileCtrl):
