@@ -4,6 +4,7 @@ from psychopy.app.themes import fonts, icons
 from psychopy.experiment.devices import DeviceBackend
 from psychopy.experiment.params import Param
 from psychopy.hardware.manager import DeviceManager
+from psychopy import logging
 from psychopy.localization import _translate
 
 
@@ -116,7 +117,10 @@ class AddDeviceDlg(wx.Dialog):
         if AddDeviceDlg.availableDevices is None:
             AddDeviceDlg.availableDevices = {}
             for backend in DeviceBackend.getAllBackends():
-                AddDeviceDlg.availableDevices[backend] = DeviceManager.getAvailableDevices(backend.deviceClass)
+                try:
+                    AddDeviceDlg.availableDevices[backend] = DeviceManager.getAvailableDevices(backend.deviceClass)
+                except Exception as err:
+                    logging.warn("Failed to scan for {backend.deviceClass} devices, reason: {err}")
         # clear ctrl
         self.devicesCtrl.DeleteAllItems()
         self.branchClasses = {}

@@ -266,7 +266,7 @@ class DeviceBackend:
         code = (
             "# initialize %(deviceLabel)s\n"
             "deviceManager.addDevice(\n"
-            "    deviceName='%(deviceLabel)s',\n"
+            "    deviceName=%(deviceLabel)s,\n"
         )
         buff.writeIndentedLines(code % self.params)
         # add options from profile
