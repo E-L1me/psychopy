@@ -19,6 +19,10 @@ from pathlib import Path
 root = Path(__file__).parent.parent  # root of the repo
 version = (root / 'psychopy/VERSION').read_text().strip()
 
+def glob_to_list(path, glob_pattern='*'):
+    """Convert a glob pattern to a list of files."""
+    return [str(p.absolute()) for p in Path(path).glob(glob_pattern)]
+
 compile_po.compilePoFiles()
 writeVersionFiles.updateVersionFile()
 writeVersionFiles.updateGitShaFile()
@@ -30,7 +34,7 @@ requires = []
 if platform != 'darwin':
     raise RuntimeError("setupApp.py is only for building Mac Standalone bundle")
 
-resources = list((root / 'psychopy/app/Resources').glob('*'))
+resources = glob_to_list(root / 'psychopy/app/Resources', '*')
 frameworks = [ # these installed using homebrew
               find_library("libevent"),
               find_library("libmp3lame"),
@@ -38,7 +42,7 @@ frameworks = [ # these installed using homebrew
               # libffi comes in the system
               "/usr/local/opt/libffi/lib/libffi.dylib",
               ]
-opencvLibs = list(Path(sys.exec_prefix, 'lib').glob('libopencv*.2.4.dylib'))
+opencvLibs = glob_to_list(Path(sys.exec_prefix, 'lib'), 'libopencv*.2.4.dylib')
 frameworks.extend(opencvLibs)
 
 import macholib
