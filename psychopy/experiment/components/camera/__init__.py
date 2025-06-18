@@ -33,6 +33,20 @@ class CameraComponent(BaseDeviceComponent):
     tooltip = _translate('Webcam: Record video from a webcam.')
     beta = False
     deviceClasses = ["psychopy.hardware.camera.CameraDevice"]
+    legacyParams = [
+        # old device setup params, no longer needed as this is handled by DeviceManager
+        "cameraLib",
+        "device",
+        "deviceManual",
+        "frameRate",
+        "frameRateManual",
+        "mic",
+        "micChannels",
+        "micMaxRecSize",
+        "mixSampleRate",
+        "resolution",
+        "resolutionManual"
+    ]
 
     def __init__(
             # Basic
@@ -295,12 +309,12 @@ class CameraDeviceBackend(DeviceBackend):
         from psychopy.hardware.camera import CameraDevice
 
         # get supported resolutions and framerates
-        resolutions = []
-        frameRates = []
+        resolutions = set()
+        frameRates = set()
         for profile in CameraDevice.getAvailableDevices(best=False):
             if profile['device'] == self.profile['device']:
-                resolutions.append(profile['frameSize'])
-                frameRates.append(profile['frameRate'])
+                resolutions.add(profile['frameSize'])
+                frameRates.add(profile['frameRate'])
         
         order = [
             'frameSize',
@@ -310,7 +324,7 @@ class CameraDeviceBackend(DeviceBackend):
         
         self.params['frameSize'] = Param(
             None, valType='list', inputType="choice", categ="Device",
-            allowedVals=resolutions, allowedLabels=resolutions,
+            allowedVals=list(sorted(resolutions)), allowedLabels=list(sorted(resolutions)),
             hint=_translate(
                 "Resolution (w x h) to record to, leave blank to use device default."
             ),
@@ -318,7 +332,7 @@ class CameraDeviceBackend(DeviceBackend):
         )
         params['frameRate'] = Param(
             None, valType='int', inputType="choice", categ="Device",
-            allowedVals=frameRates, allowedLabels=frameRates,
+            allowedVals=list(frameRates), allowedLabels=list(frameRates),
             hint=_translate(
                 "Frame rate (frames per second) to record at, leave blank to use device default."
             ),
