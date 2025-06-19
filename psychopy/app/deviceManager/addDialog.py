@@ -1,3 +1,4 @@
+from psychopy.app.deviceManager.utils import DeviceImageList
 from psychopy.app.builder.dialogs.paramCtrls import EVT_PARAM_CHANGED, ParamCtrl
 from psychopy.app.builder.validators import WarningManager
 from psychopy.app.themes import fonts, icons
@@ -67,6 +68,8 @@ class AddDeviceDlg(wx.Dialog):
             self,
             style=wx.TR_HIDE_ROOT | wx.TR_HAS_BUTTONS | wx.TR_NO_LINES
         )
+        self.imageList = DeviceImageList(width=16, height=16)
+        self.devicesCtrl.SetImageList(self.imageList)
         self.sizer.Add(
             self.devicesCtrl, proportion=1, border=6, flag=wx.EXPAND | wx.BOTTOM
         )
@@ -124,8 +127,6 @@ class AddDeviceDlg(wx.Dialog):
         # clear ctrl
         self.devicesCtrl.DeleteAllItems()
         self.branchClasses = {}
-        self.imageList = wx.ImageList(width=16, height=16)
-        self.devicesCtrl.SetImageList(self.imageList)
         # add a root
         root = self.devicesCtrl.AddRoot("Available devices")
         # iterate through classes...
@@ -133,17 +134,8 @@ class AddDeviceDlg(wx.Dialog):
             # don't add label if there's no profiles
             if len(profiles) == 0:
                 continue
-            # add icon if possible
-            if cls.icon is not None:
-                bmp = icons.BaseIcon.resizeBitmap(
-                    wx.Bitmap(str(cls.getIconFile())),
-                    size=16
-                )
-                img = self.imageList.Add(bmp)
-            else:
-                img = -1
             # add a child for each class
-            branch = self.devicesCtrl.AppendItem(root, cls.backendLabel, image=img)
+            branch = self.devicesCtrl.AppendItem(root, cls.backendLabel, image=self.imageList.getIcon(cls))
             # store ref to branch class
             self.branchClasses[branch] = cls
             # iterate through profiles...
