@@ -1,5 +1,6 @@
 from psychopy.app.deviceManager.addDialog import AddDeviceDlg
 from psychopy.app.deviceManager.panel import DevicePanel
+from psychopy.app.deviceManager.utils import DeviceImageList
 from psychopy.preferences import prefs
 
 
@@ -39,6 +40,10 @@ class DeviceManagerDlg(wx.Dialog):
         self.profilesListCtrl.SetColumnWidth(-1, 128)
         self.profilesListCtrl.SetMinSize((128, 128))
         self.profilesListCtrl.Refresh()
+        # apply cached devices image list
+        self.imageList = DeviceImageList(width=24, height=24)
+        self.profilesListCtrl.SetImageList(self.imageList, which=wx.IMAGE_LIST_SMALL)
+        # self.profilesListCtrl.SetWindowStyle(wx.LC_ICON)
         # get list ctrl sizer so we can add ctrls
         self.profilesListCtrl.sizer = self.profilesListCtrl.GetSizer()
         if self.profilesListCtrl.sizer is None:
@@ -77,13 +82,15 @@ class DeviceManagerDlg(wx.Dialog):
         # add pages
         for name, device in self.devices.items():
             if name not in self.pages:
+                # create page
                 self.pages[name] = DevicePanel(
                     parent=self.profilesNotebook, 
                     dlg=self, 
                     device=device
                 )
+                # add page
                 self.profilesNotebook.AddPage(
-                    text=name, page=self.pages[name]
+                    text=name, page=self.pages[name], imageId=self.imageList.getIcon(device)
                 )
         # add/remove a placeholder depending on whether there's no pages
         if not len(self.pages):
@@ -93,6 +100,8 @@ class DeviceManagerDlg(wx.Dialog):
             self.profilesNotebook.RemovePage(
                 self.profilesNotebook.FindPage(self.pages[None])
             )
+        # set icon list
+
     
     def renameDevice(self, oldname, newname):
         # set name param
