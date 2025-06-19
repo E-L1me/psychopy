@@ -68,8 +68,9 @@ class AddDeviceDlg(wx.Dialog):
             self,
             style=wx.TR_HIDE_ROOT | wx.TR_HAS_BUTTONS | wx.TR_NO_LINES
         )
-        self.imageList = DeviceImageList(width=16, height=16)
+        self.imageList = DeviceImageList(width=24, height=24)
         self.devicesCtrl.SetImageList(self.imageList)
+        self.devicesCtrl.SetIndent(6)
         self.sizer.Add(
             self.devicesCtrl, proportion=1, border=6, flag=wx.EXPAND | wx.BOTTOM
         )
@@ -136,6 +137,7 @@ class AddDeviceDlg(wx.Dialog):
                 continue
             # add a child for each class
             branch = self.devicesCtrl.AppendItem(root, cls.backendLabel, image=self.imageList.getIcon(cls))
+            self.devicesCtrl.SetItemBold(branch)
             # store ref to branch class
             self.branchClasses[branch] = cls
             # iterate through profiles...

@@ -47,7 +47,7 @@ class DeviceImageList(wx.ImageList):
         if file and Path(file).is_file():
             bmp = icons.BaseIcon.resizeBitmap(
                 wx.Bitmap(str(device.getIconFile())),
-                size=16
+                size=self.GetSize()
             )
             i = self.Add(bmp)
             # cache and return

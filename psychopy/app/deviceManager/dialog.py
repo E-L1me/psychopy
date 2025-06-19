@@ -41,8 +41,9 @@ class DeviceManagerDlg(wx.Dialog):
         self.profilesListCtrl.SetMinSize((128, 128))
         self.profilesListCtrl.Refresh()
         # apply cached devices image list
-        self.imageList = DeviceImageList(16, 16)
+        self.imageList = DeviceImageList(width=24, height=24)
         self.profilesListCtrl.SetImageList(self.imageList, which=wx.IMAGE_LIST_SMALL)
+        # self.profilesListCtrl.SetWindowStyle(wx.LC_ICON)
         # get list ctrl sizer so we can add ctrls
         self.profilesListCtrl.sizer = self.profilesListCtrl.GetSizer()
         if self.profilesListCtrl.sizer is None:
