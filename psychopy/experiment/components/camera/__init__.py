@@ -345,7 +345,7 @@ class CameraDeviceBackend(DeviceBackend):
         
         self.params['frameSize'] = Param(
             "", valType='list', inputType="choice", categ="Device",
-            allowedVals=list(sorted(resolutions)), allowedLabels=list(sorted(resolutions)),
+            allowedVals=[""] + list(sorted(resolutions)), allowedLabels=["Default"] + list(sorted(resolutions)),
             hint=_translate(
                 "Resolution (w x h) to record to, leave blank to use device default."
             ),
@@ -353,7 +353,7 @@ class CameraDeviceBackend(DeviceBackend):
         )
         params['frameRate'] = Param(
             None, valType='int', inputType="choice", categ="Device",
-            allowedVals=list(frameRates), allowedLabels=list(frameRates),
+            allowedVals=[""] + list(frameRates), allowedLabels=["Default"] + list(frameRates),
             hint=_translate(
                 "Frame rate (frames per second) to record at, leave blank to use device default."
             ),
