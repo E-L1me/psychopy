@@ -672,7 +672,7 @@ def findFontFiles(folders=(), recursive=True, currentDir=Path(".")):
     # if local directory has a /fonts or /assets subdirectory, search those
     for localSubdir in (
         currentDir / "fonts",
-        currentDir / "assets"
+        currentDir / "assets" / "fonts"
     ):
         if localSubdir.is_dir():
             searchPaths.append(localSubdir.absolute())
