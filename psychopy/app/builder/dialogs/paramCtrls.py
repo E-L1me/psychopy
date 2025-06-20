@@ -1043,7 +1043,11 @@ class FontCtrl(SingleLineCtrl):
         from psychopy.tools.fontmanager import FontManager, MissingFontError
         fm = FontManager()
         # check whether the font is installed
-        installed = fm.getFontsMatching(self.getValue(), fallback=False)
+        if self.element and hasattr(self.element, "exp") and self.element.exp.filename:
+            currentDir = Path(self.element.exp.filename).parent
+        else:
+            currentDir = Path(".")
+        installed = fm.getFontsMatching(self.getValue(), fallback=False, currentDir=currentDir)
         # if not installed, ask the user whether to download from Google Fonts
         if not installed:
             # create dialog
