@@ -13,7 +13,7 @@ import py2app  # noqa: needed to build app bundle, even though not explicitly us
 from ctypes.util import find_library
 import importlib
 from building import compile_po
-from building import writeVersionFiles
+from building import semanticVersion
 from pathlib import Path
 
 root = Path(__file__).parent  # root of the repo
@@ -24,8 +24,8 @@ def glob_to_list(path, glob_pattern='*'):
     return [str(p.absolute()) for p in Path(path).glob(glob_pattern)]
 
 compile_po.compilePoFiles()
-writeVersionFiles.updateVersionFile()
-writeVersionFiles.updateGitShaFile()
+semanticVersion.updateVersionFile()
+semanticVersion.updateGitShaFile()
 
 #define the extensions to compile if necess
 packageData = []
