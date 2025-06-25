@@ -12,11 +12,11 @@ import bdist_mpkg  # noqa: needed to build bdist, even though not explicitly use
 import py2app  # noqa: needed to build app bundle, even though not explicitly used here
 from ctypes.util import find_library
 import importlib
-import compile_po
-import writeVersionFiles
+from building import compile_po
+from building import writeVersionFiles
 from pathlib import Path
 
-root = Path(__file__).parent.parent  # root of the repo
+root = Path(__file__).parent  # root of the repo
 version = (root / 'psychopy/VERSION').read_text().strip()
 
 def glob_to_list(path, glob_pattern='*'):

@@ -4,7 +4,7 @@
 """Writes the current version, build platform etc.
 """
 
-from semanticVersion import getSemanticVersion, getLastCommit
+from .semanticVersion import getSemanticVersion, getLastCommit
 from pathlib import Path
 
 root = Path(__file__).parent.parent  # root of the repo
