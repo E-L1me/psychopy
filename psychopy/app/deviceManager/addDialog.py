@@ -36,7 +36,7 @@ class AddDeviceDlg(wx.Dialog):
         )
         # name ctrl
         self.name = Param(
-            "device", valType="str", inputType="name",
+            "", valType="str", inputType="name",
             label=_translate("Device label"),
             hint=_translate(
                 "A name to refer to this device by in Device Manager."
