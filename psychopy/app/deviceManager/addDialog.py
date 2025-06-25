@@ -35,6 +35,10 @@ class AddDeviceDlg(wx.Dialog):
             self.sizer, proportion=1, border=12, flag=wx.EXPAND | wx.ALL
         )
         # name ctrl
+        self.nameLbl = wx.StaticText(self, label=_translate("Device name"))
+        self.sizer.Add(
+            self.nameLbl, border=6, flag=wx.EXPAND | wx.TOP
+        )
         self.name = Param(
             "", valType="str", inputType="name",
             label=_translate("Device label"),
