@@ -83,6 +83,7 @@ class BaseParamCtrl(wx.Panel):
     def __init__(self, parent, field, param, element=None, warnings=None):
         # initialise
         wx.Panel.__init__(self, parent)
+        self.SetMinSize((256, 24))
         # store details
         self.parent = parent
         self.field = field
