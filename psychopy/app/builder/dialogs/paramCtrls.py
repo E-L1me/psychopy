@@ -1648,3 +1648,20 @@ class DeviceCtrl(ChoiceCtrl):
         dlg.ShowModal()
         # repopulate devices
         self.populate()
+    
+    def onElementOk(self, evt=None):
+        # get the device manager
+        from psychopy.preferences import prefs
+        # if not setup, ask the user whether they want to set it up
+        if self.getValue() not in prefs.devices:
+            # create dialog
+            dlg = wx.MessageDialog(
+                self.GetTopLevelParent(),
+                _translate(
+                    "No device named `{}` has been setup in the Device Manager, set one up now?"
+                ).format(self.getValue()),
+                style=wx.YES|wx.NO|wx.ICON_QUESTION
+            )
+            # open device manager if yes
+            if dlg.ShowModal() == wx.ID_YES:
+                self.openDeviceManager()
