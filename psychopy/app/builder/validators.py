@@ -151,11 +151,26 @@ class WarningManager:
 
     @property
     def OK(self):
-        """`True` if there are no warnings (`bool`)."""
+        """
+        Return
+        ======
+        bool
+            True if there are no messages which aren't `.allowed`
+        """
         if len(self._warnings) == 0:
             return True
         else:
             return all(warning.allowed for warning in self._warnings.values())
+    
+    @property
+    def isEmtpy(self):
+        """
+        Returns
+        -------
+        bool
+            True if there are no warnings at all, even allowed ones.
+        """
+        return len(self._warnings) == 0
 
     @property
     def parent(self):

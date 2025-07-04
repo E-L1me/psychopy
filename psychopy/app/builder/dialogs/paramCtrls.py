@@ -1469,6 +1469,20 @@ class DictCtrl(BaseParamCtrl):
             self.parent.onChange(evt)
     
     class DictValue(SingleLineCtrl):
+        def validate(self):
+            # update param label so the error reports the value of keyctrl
+            if hasattr(self, "keyCtrl"):
+                self.param.label = f"{self.parent.param.label}:{self.keyCtrl.getValue()}"
+
+            # validate first as code
+            self.param.valType = "code"
+            self.validateCode()
+            # if this failed, try as string
+            if not self.warnings.isEmtpy:
+                self.warnings.clearWarning(self)
+                self.param.valType = "str"
+                self.validateStr()
+
         def onChange(self, evt=None):
             SingleLineCtrl.onChange(self, evt)
             self.parent.onChange(evt)
@@ -1493,6 +1507,7 @@ class DictCtrl(BaseParamCtrl):
                 element=parent.element,
                 warnings=parent.warnings
             )
+            self.valueCtrl.keyCtrl = self.keyCtrl
             # add delete button
             self.deleteBtn = wx.Button(parent, style=wx.BU_EXACTFIT)
             self.deleteBtn.SetBitmap(
