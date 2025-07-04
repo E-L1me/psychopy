@@ -1666,6 +1666,7 @@ class DeviceCtrl(ChoiceCtrl):
     def onElementOk(self, evt=None):
         # get the device manager
         from psychopy.preferences import prefs
+        from psychopy.app.deviceManager import AddDeviceDlg
         # if not setup, ask the user whether they want to set it up
         if self.getValue() and self.getValue() not in prefs.devices:
             # create dialog
@@ -1678,4 +1679,10 @@ class DeviceCtrl(ChoiceCtrl):
             )
             # open device manager if yes
             if dlg.ShowModal() == wx.ID_YES:
-                self.openDeviceManager()
+                dlg = AddDeviceDlg(self, deviceName=self.getValue())
+                # on OK, add device and refresh list
+                if dlg.ShowModal() == wx.ID_OK:
+                    device = dlg.getDevice()
+                    prefs.devices[device.name] = device
+                    prefs.devices.save()
+                    self.populate()

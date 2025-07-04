@@ -1,1 +1,1 @@
-from .dialog import DeviceManagerDlg
+from .dialog import DeviceManagerDlg, AddDeviceDlg

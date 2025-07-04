@@ -16,7 +16,7 @@ class AddDeviceDlg(wx.Dialog):
 
     availableDevices = None
 
-    def __init__(self, parent):
+    def __init__(self, parent, deviceName=""):
         wx.Dialog.__init__(
             self, parent, title="Add device",
             size=(540, 540),
@@ -40,7 +40,7 @@ class AddDeviceDlg(wx.Dialog):
             self.nameLbl, border=6, flag=wx.EXPAND | wx.TOP
         )
         self.name = Param(
-            "", valType="str", inputType="name",
+            deviceName, valType="str", inputType="name",
             label=_translate("Device label"),
             hint=_translate(
                 "A name to refer to this device by in Device Manager."
