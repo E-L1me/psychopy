@@ -1475,12 +1475,19 @@ class DictCtrl(BaseParamCtrl):
 
             # validate first as code
             self.param.valType = "code"
+            self.dollarLbl.Show()
+            self.warnings.clearWarning(self)
             self.validateCode()
             # if this failed, try as string
-            if not self.warnings.isEmtpy:
+            if self.warnings.getWarning(self):
                 self.warnings.clearWarning(self)
                 self.param.valType = "str"
                 self.validateStr()
+            
+            self.dollarLbl.Show(self.param.valType == "code")
+            
+            self.Refresh()
+            self.Layout()
 
         def onChange(self, evt=None):
             SingleLineCtrl.onChange(self, evt)
