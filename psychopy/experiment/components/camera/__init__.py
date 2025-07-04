@@ -365,7 +365,6 @@ class CameraDeviceBackend(DeviceBackend):
 
 # register backend with Component
 CameraComponent.registerBackend(CameraDeviceBackend)
-CameraComponent.registerBackend(MicrophoneDeviceBackend)
 
 
 if __name__ == "__main__":
