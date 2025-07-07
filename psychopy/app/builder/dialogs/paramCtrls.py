@@ -1669,6 +1669,10 @@ class DeviceCtrl(ChoiceCtrl):
         dlg.ShowModal()
         # repopulate devices
         self.populate()
+        # also repopulate sibling controls
+        for sibling in self.GetParent().GetChildren():
+            if isinstance(sibling, DeviceCtrl) and sibling is not self:
+                sibling.populate()
     
     def onElementOk(self, evt=None):
         # get the device manager
