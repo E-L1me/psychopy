@@ -63,14 +63,17 @@ def generate_new_template(verbose=False):
     if verbose:
         print('Generating new template file... ', end='')
     argv = ['pybabel', '-q', 'extract',
-            '--input-dirs=..',
+            '--input-dirs=.',
             '--project=PsychoPy',
             '--version='+psychopy_version,
             '--keyword=_translate',
             '--width=79',
-            '--output-file='+new_pot_filename,
+            '--output-file=localization/'+new_pot_filename,
             '--ignore-dirs="app/localization/utils app/Resources"']
-    babel_frontend.run(argv)
+
+    os.chdir('..')             # The command must be run in the parent directory.
+    babel_frontend.run(argv)   # Run the command
+    os.chdir('localization')   # Return to the original directory.
     if verbose:
         print('Done.')
 
@@ -186,6 +189,11 @@ parser.add_argument('-c', '--commit', action='store_true', help='Commit messages
 parser.add_argument('-v', '--verbose', action='store_true', help='Show detailed processing information.', required=False)
 
 args = parser.parse_args()
+
+parent_dir, current_dir = os.path.split(os.getcwd())
+if current_dir != 'localization' or os.path.split(parent_dir)[1] != 'psychopy':
+    print('Error: this script must be run in psychopy/localization directory.')
+    sys.exit(-1)
 
 generate_new_template(verbose=args.verbose)
 num_new_entries, num_total_entries = find_new_entries(verbose=args.verbose)
