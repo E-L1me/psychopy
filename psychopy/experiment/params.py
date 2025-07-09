@@ -16,6 +16,7 @@ The code that writes out a *_lastrun.py experiment file is (in order):
     settings.SettingsComponent.writeEndCode()
 """
 import functools
+import json
 from xml.etree.ElementTree import Element
 
 import re
@@ -232,7 +233,7 @@ class Param():
                 return "%i" % self.val  # int and float -> str(int)
             except TypeError:
                 return "%s" % self.val  # try array of float instead?
-        elif self.valType in ['extendedStr','str', 'file', 'table']:
+        elif self.valType in ['extendedStr', 'str', 'file', 'table', 'device']:
             # at least 1 non-escaped '$' anywhere --> code wanted
             # return str if code wanted
             # return repr if str wanted; this neatly handles "it's" and 'He
@@ -374,12 +375,41 @@ class Param():
             allowedLabels=self.allowedLabels,
             direct=self.direct,
             canBePath=self.canBePath,
-            categ=self.categ
+            categ=self.categ,
+            ctrlParams=self.ctrlParams
         )
 
     def __deepcopy__(self, memo):
         return self.copy()
-
+    
+    @classmethod
+    def fromJSON(cls, data):
+        # initialise
+        param = Param(
+            "",
+            "code",
+        )
+        # apply
+        param.applyJSON(data)
+    
+    def applyJSON(self, data):
+        if "val" in data:
+            self.val = data['val']
+        if "valType" in data:
+            self.valType = data['valType']
+        if "updates" in data:
+            self.updates = "{}".format(data['updates'])
+        if "plugin" in data:
+            self.plugin = "{}".format(data['plugin'])
+    
+    def toJSON(self):
+        return {
+            'val': self.val,
+            'valType': self.valType,
+            'updates': "{}".format(self.updates),
+            'plugin': "{}".format(self.plugin)
+        }
+    
     @property
     def _xml(self):
         # Make root element

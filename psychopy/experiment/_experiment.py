@@ -741,6 +741,10 @@ class Experiment:
             else:
                 if name in params:
                     params[name].val = val
+                elif name in legacyParams + componentLegacyParams:
+                    # don't warn people if we know it's OK (e.g. for params
+                    # that have been removed
+                    return recognised
                 else:
                     # we found an unknown parameter (probably from the future)
                     params[name] = Param(
@@ -754,11 +758,7 @@ class Experiment:
                     params[name].allowedTypes = paramNode.get('allowedTypes')
                     if params[name].allowedTypes is None:
                         params[name].allowedTypes = []
-                    if name in legacyParams + componentLegacyParams:
-                        # don't warn people if we know it's OK (e.g. for params
-                        # that have been removed
-                        pass
-                    elif componentNode is not None and componentNode.get("plugin", False) not in (False, "", "None", None):
+                    if componentNode is not None and componentNode.get("plugin", False) not in (False, "", "None", None):
                         # is param unrecognised because it's from a plugin?
                         params[name].categ = "Plugin"
                         params[name].plugin = componentNode.get("plugin", False)
@@ -771,17 +771,24 @@ class Experiment:
 
         # get the value type and update rate
         if 'valType' in list(paramNode.keys()):
-            params[name].valType = paramNode.get('valType')
+            valType = paramNode.get('valType')
+            setValType = True
             # compatibility checks:
             if name in ['allowedKeys'] and paramNode.get('valType') == 'str':
                 # these components were changed in v1.70.00
-                params[name].valType = 'code'
+                valType = 'code'
             elif name == 'Selected rows':
                 # changed in 1.81.00 from 'code' to 'str': allow string or var
-                params[name].valType = 'str'
+                valType = 'str'
             # conversions based on valType
             if params[name].valType == 'bool':
                 params[name].val = eval("%s" % params[name].val)
+            # "device" valType was introduced in 2025.2.0 and should always override saved valType
+            if params[name].valType == "device":
+                setValType = False
+            # do actual setting
+            if setValType:
+                params[name].valType = valType
         if 'updates' in list(paramNode.keys()):
             params[name].updates = paramNode.get('updates')
 
@@ -1147,6 +1154,58 @@ class Experiment:
     @property
     def htmlFolder(self):
         return self.settings.params['HTML path'].val
+
+    def getRequiredDeviceNames(self):
+        """
+        Get the device names which need to be defined for this experiment to run, along with a list 
+        of possible types for each one.
+
+        Returns
+        -------
+        dict[str: list[str]]
+            Device names and a list of possible types for each one
+        """
+        # dict in which to store usages
+        usages = {}
+
+        def _process(emt):
+            """
+            Process an element (Component or Routine) for device names and append them to the
+            usages dict.
+
+            Parameters
+            ----------
+            emt : Component or Routine
+                Element to process
+            """
+            # iterate through param's inita values
+            for param in getInitVals(emt.params).values():
+                # if it's a device...
+                if param.valType == "device":
+                    # get value
+                    deviceName = param.val
+                    # make sure device name is in usages dict
+                    if deviceName not in usages:
+                        usages[deviceName] = []
+                    # add any new usages
+                    for cls in getattr(emt, "deviceClasses", []):
+                        if cls not in usages[deviceName]:
+                            usages[deviceName].append(cls) 
+        
+        # iterate through routines
+        for rt in self.routines.values():
+            if isinstance(rt, BaseStandaloneRoutine):
+                # for standalone routines, get device names from params
+                _process(rt)
+            else:
+                # for regular routines, get device names from each component
+                for comp in rt:
+                    _process(comp)
+        # process settings
+        _process(self.settings)
+        
+        return usages
+
 
     def getComponentFromName(self, name):
         """Searches all the Routines in the Experiment for a matching Comp name
