@@ -4,6 +4,7 @@ import math
 import numpy
 import os
 import json
+import time
 
 class  EyeTracker(EyeTrackerDevice):
     """
@@ -22,6 +23,7 @@ class  EyeTracker(EyeTrackerDevice):
         self.logfile = None #path to logfile
         self.filename = None
         self.cal = None
+        self.lastDataset = None
 
     def createDataLog(self, filename):
         self.logfile = logfolder + "/" + filename
@@ -124,7 +126,7 @@ class  EyeTracker(EyeTrackerDevice):
         if self._
 
     def runSetupProcedure(self, calibration_args={}):
-        
+        calibration = DPICalibrationProcedure(self, calibration_args)
     
 
                 
