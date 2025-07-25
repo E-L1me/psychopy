@@ -18,8 +18,11 @@ currentTime = Computer.getTime
 class DPICalibrationProcedure(BaseCalibrationProcedure):
 
     def __init__(self, eyetrackerInterface, calibration_args):
-        BaseCalibrationProcedure.__init(self, eyetrackerInterface, calibration_args, allow_escape_in_progress=True)
+        BaseCalibrationProcedure.__init__(self, eyetrackerInterface, calibration_args, allow_escape_in_progress=True)
         self.eyetracker = eyetrackerInterface
+        self.targetClassHasPlayPause = False
+        self.targetStim = None
+        self.targetClassHasPlayPause = False
         
         #dataset
         self.dataset = [] #dataset structured in the form = {'screen_point': eye dataset, ....}
@@ -38,19 +41,19 @@ class DPICalibrationProcedure(BaseCalibrationProcedure):
 
         if self.showIntroScreen() is False:
             return False
-        
-        target_delay = super().getCalibSetting('target_delay')
-        target_duration = super().getCalibSetting('target_duration')
-        auto_pace =  super().getCalibSetting('auto_pace')
-        randomize_points =  super().getCalibSetting('randomize')
+
+        target_delay = self.getCalibSetting('target_delay')
+        target_duration = self.getCalibSetting('target_duration')
+        auto_pace = self.getCalibSetting('auto_pace')
+        randomize_points = self.getCalibSetting('randomize')
         if randomize_points is True:
-            super().cal_target_list = super().CALIBRATION_POINT_LIST[1:]
+            self.cal_target_list = self.CALIBRATION_POINT_LIST[1:]
             import random
             random.seed(None)
             random.shuffle(self.cal_target_list)
             self.cal_target_list.insert(0, self.CALIBRATION_POINT_LIST[0])
 
-        left, top, right, bottom = self._eyetracker.display_device.getCoordBounds()
+        left, top, right, bottom = self._eyetracker._display_device.getCoordBounds()
         w, h = right - left, top - bottom
 
         self.clearCalibrationWindow()

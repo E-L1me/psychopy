@@ -39,12 +39,12 @@ class  DPIEyeTracker(EyeTrackerDevice):
         self.last_data_time = 0
 
         # filtering values
-        self.cal = None
-        self.screen_thresh = None
-        self.pupil_area_thresh = None
-        self.P4_thresh = None
-        self.CR_thresh = None
-        self.P4_speed_thresh = None
+        self.screen_thresh = {'maxx': 0.0, 'minx': 0.0, 'maxy': 0.0, 'miny': 0.0}
+        self.pupil_area_thresh = {'max': 0.0, 'min': 0.0}
+        self.P4_thresh = {'maxx': 0.0, 'minx': 0.0, 'maxy': 0.0, 'miny': 0.0}
+        self.CR_thresh = {'maxx': 0.0, 'minx': 0.0, 'maxy': 0.0, 'miny': 0.0}
+        self.P4_speed_thresh = 0.0
+        
 
     def _connectEyetracker(self):
         """Connect to the OpenIris client."""
@@ -88,7 +88,7 @@ class  DPIEyeTracker(EyeTrackerDevice):
             self._recording = True
             self.setConnectionState(True)
         elif recording is not True and current_state:
-            self.recording = False
+            self._recording = False
             self._latest_data = None
             self._lastEventTime = 0
         return self.isRecordingEnabled()
@@ -118,6 +118,9 @@ class  DPIEyeTracker(EyeTrackerDevice):
         if self.last_data is not None and self.last_data_time > 0:
             dd = np.array([data.P4.x - self.last_data.P4.x, data.P4.y - self.last_data.P4.y])
             dt = self._latest_data_time - self.last_data_time
+            if dt <= 0:
+                print("Warning: dt is zero or negative, cannot calculate speed.")
+                return False
             speed = np.linalg.norm(dd) / dt
 
             if speed >= self.P4_speed_thresh:
@@ -157,6 +160,12 @@ class  DPIEyeTracker(EyeTrackerDevice):
             - If the data is not valid, returns None.
         """
         try:
+            if data is None:
+                print("No data available.")
+                return None
+            if self.cal is None:
+                print("Calibration coefficients are not set.")
+                return None
             x = data.cr.x - data.p4.x
             y = data.cr.y - data.p4.y
             X = np.array([1,x,y,x**2,y**2,x * y])
@@ -190,7 +199,11 @@ class  DPIEyeTracker(EyeTrackerDevice):
             self.last_data = self._latest_data
             self.last_data_time = self._latest_data_time
             # Fetch the next data point from the OpenIris client
-            self._latest_data, self._latest_data_time = self._client.fetch_next_data(True)
+            try:
+                self._latest_data, self._latest_data_time = self._client.fetch_next_data(True)
+            except Exception as e:
+                print(f"Error fetching data from OpenIris client: {e}")
+                return [None, None, None, 2]
             if filter:
                 if self.filter(self._latest_data):
                         return [self.find_pos(self._latest_data), self._latest_data, self._latest_data_time, 0]

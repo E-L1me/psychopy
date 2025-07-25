@@ -5,6 +5,19 @@ import os
 import json
 import numpy as np
 import gevent
+import yaml
+
+# Custom JSON encoder for numpy data types
+class NumpyEncoder(json.JSONEncoder):
+    def default(self, obj):
+        if isinstance(obj, np.ndarray):
+            return obj.tolist()
+        if isinstance(obj, (np.integer,)):
+            return int(obj)
+        if isinstance(obj, (np.floating,)):
+            return float(obj)
+        return super(NumpyEncoder, self).default(obj)
+
 
 #custom imports
 from psychopy.iohub.devices.eyetracker.hw.OpenIrirs.eyetracker import DPIEyeTracker
@@ -61,12 +74,12 @@ class DataCollector(threading.Thread):
         while not self.stop_event.is_set():
             # Get current filtering values safely
             with self.filtering_values_lock:
-                eyetracker.updateFilteringValues(
+                self.eyetracker.updateFilteringValues(
                     pupil_area_thresh=filtering_values['pupil_area'],
                     P4_speed_thresh=filtering_values['P4_speed']
                 )
             
-            data = eyetracker._poll()
+            data = self.eyetracker._poll()
             if data[3] == 0 or data[3] == 1:
                 self.data_queue.put(data)
                 self.screen_queue.put(data[0])
@@ -383,10 +396,20 @@ class DataProcessor(threading.Thread):
 
     def calculate_and_update_filters(self):
         try:
-            pupil_areas = [data[1].pupil_area for data in self.stored_data[-self.window_size:] if data is not None]
-            pupil_positions = np.array([[data[0][0], data[0][1]] for data in self.stored_data[-self.window_size:] if data is not None])
-            pupil_pos_times = np.array([data[2] for data in self.stored_data[-self.window_size:] if data is not None])
-            pupil_speeds = np.linalg.norm(np.diff(pupil_positions, axis=0), axis=1)/ np.diff(pupil_pos_times)
+            try:
+                pupil_areas = [data[1].pupil_area for data in self.stored_data[-self.window_size:] if data is not None]
+                pupil_positions = np.array([[data[0][0], data[0][1]] for data in self.stored_data[-self.window_size:] if data is not None])
+                pupil_pos_times = np.array([data[2] for data in self.stored_data[-self.window_size:] if data is not None])
+                pupil_speeds = np.linalg.norm(np.diff(pupil_positions, axis=0), axis=1)/ np.diff(pupil_pos_times)
+            except IndexError:
+                print("Not enough data to calculate filters.")
+                return False
+            except TypeError:
+                print("Data format error, expected structured data.")
+                return False
+            except Exception as e:
+                print(f"Unexpected error: {e}")
+                return False
 
             if pupil_areas:
                 new_pupil_min = np.mean(pupil_areas) - np.std(pupil_areas) * 3
@@ -407,15 +430,16 @@ class DataProcessor(threading.Thread):
             return False
     
     def createDataLog(self, filename):
+        os.makedirs(self.logfolder, exist_ok=True)
         self.logfile = self.logfolder + "/" + filename
         if not os.path.exists(self.logfile ):
             with open(self.logfile, 'w') as f:
                 pass
 
     def logData(self, data):
-        try: 
+        try:
             with open(self.logfile, 'a') as f:
-                json_string = json.dumps(data)
+                json_string = json.dumps(data, cls=NumpyEncoder)
                 f.write(json_string + '\n')
         except IOError as e:
             print(f"Error appending to file '{self.logfile}': {e}")
@@ -426,25 +450,25 @@ class DataProcessor(threading.Thread):
 
 # --- Main execution ---
 if __name__ == "__main__":
+    with open('calibration_settings.yaml', 'r') as f:
+        calibration_args = yaml.safe_load(f)
+    
     eyetracker = DPIEyeTracker()
-    eyetracker.runSetupProcedure()
+    eyetracker.runSetupProcedure(calibration_args=calibration_args)
     
     collector_thread = DataCollector(
-        "CollectorThread", filtered_data_queue, filtering_values_lock, stop_event
-    )
-    processor_thread = DataProcessor(
-        "ProcessorThread", filtered_data_queue, screen_position_queue, filtering_values_lock, stop_event, calculation_period_ms=100
+        "CollectorThread", eyetracker, filtered_data_queue, screen_position_queue, filtering_values_lock, stop_event
     )
     renderer_thread = Renderer(
-        "RendererThread", screen_position_queue, filtering_values_lock, stop_event, calculation_period_ms=100
+        "RendererThread", screen_position_queue, stop_event
+    )     
+    processor_thread = DataProcessor(
+        "ProcessorThread", filtered_data_queue, filtering_values_lock, stop_event, calculation_period_ms=100
     )
 
     collector_thread.start()
     processor_thread.start()
     renderer_thread.start()
-
-    eyetracker = DPIEyeTracker()
-    eyetracker.runSetupProcedure()
 
     try:
         # Let the threads run for a while
