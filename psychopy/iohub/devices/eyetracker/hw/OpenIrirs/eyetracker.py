@@ -47,13 +47,22 @@ class  DPIEyeTracker(EyeTrackerDevice):
         self.P4_speed_thresh = None
 
     def _connectEyetracker(self):
-        super.setConnectionState(True)
+        """Connect to the OpenIris client."""
+        self.setConnectionState(True)
         self._client = OpenIrisClient()
 
     def isConnected(self):
+        """Check if the OpenIris client is connected.
+        """
         return self._client is not None
 
     def setConnectionState(self, enable):
+        """
+        Set the connection state of the OpenIris client.
+        Parameters:
+            enable (bool): True to connect, False to disconnect.
+        Returns:
+            bool: True if the connection is established, False otherwise."""
         if enable and self._client is None:
             self._connectEyetracker()
         elif enable is False and self._client:
@@ -61,13 +70,23 @@ class  DPIEyeTracker(EyeTrackerDevice):
         return self.isConnected()
 
     def isRecordingEnabled(self):
-        return self.recording
+        """Check if the OpenIris client is recording.
+        Returns:
+            bool: True if the client is recording, False otherwise.
+        """
+        return self._recording
 
     def setRecordingState(self, recording):
+        """Set the recording state of the OpenIris client.
+        Parameters:
+            recording (bool): True to start recording, False to stop.
+        Returns:
+            bool: True if the recording state is set, False otherwise.
+        """
         current_state = self.isRecordingEnabled()
         if recording and current_state is not True:
             self._recording = True
-            super().setConnectionState(True)
+            self.setConnectionState(True)
         elif recording is not True and current_state:
             self.recording = False
             self._latest_data = None
@@ -75,6 +94,12 @@ class  DPIEyeTracker(EyeTrackerDevice):
         return self.isRecordingEnabled()
 
     def filter(self, data):
+        """Filter the eye data based on calibration values.
+        Parameters:
+            data (EyeData): The eye data to filter.
+        Returns:
+            bool: True if the data is valid, False if it is erroneous.
+        """
         if data is None:
             return False
         # check pupil area, blink protection
@@ -101,6 +126,16 @@ class  DPIEyeTracker(EyeTrackerDevice):
         return True
 
     def updateFilteringValues(self, screen_thresh=None, pupil_area_thresh=None, P4_thresh=None, CR_thresh=None, P4_speed_thresh=None):
+        """Update the filtering values used for data processing.
+        Parameters:
+            screen_thresh (dict): Thresholds for screen coordinates {'maxx': float, 'minx': float, 'maxy': float, 'miny': float}
+            pupil_area_thresh (dict): Thresholds for pupil area {'max': float, 'min': float}
+            P4_thresh (dict): Thresholds for P4 coordinates {'maxx': float, 'minx': float, 'maxy': float, 'miny': float}
+            CR_thresh (dict): Thresholds for CR coordinates {'maxx': float, 'minx': float, 'maxy': float, 'miny': float}
+            P4_speed_thresh (float): Speed threshold for P4 movement
+        Returns:
+            None
+        """
         if screen_thresh is not None:
             self.screen_thresh = screen_thresh
         if pupil_area_thresh is not None:
@@ -113,20 +148,44 @@ class  DPIEyeTracker(EyeTrackerDevice):
             self.P4_speed_thresh = P4_speed_thresh
 
     def find_pos(self, data):
-        x = data.cr.x - data.p4.x
-        y = data.cr.y - data.p4.y
-        X = np.array([1,x,y,x**2,y**2,x * y])
-        Y = X @ self.cal
-        return Y
+        """Find the position of the eye based on calibrated regression.
+        Uses the calibration coefficients to calculate the position.
+        Parameters:
+            data (EyeData): The eye data containing the necessary fields.
+        Returns:
+            - A Numpy array object representing the eye position, [x, y].
+            - If the data is not valid, returns None.
+        """
+        try:
+            x = data.cr.x - data.p4.x
+            y = data.cr.y - data.p4.y
+            X = np.array([1,x,y,x**2,y**2,x * y])
+            Y = X @ self.cal
+            return Y
+        except Exception as e:
+            return None
 
     def interpolate(self): 
         """To be implemented:
         Interpolate missing data based on the last valid data point.
         alpha-beta interpolation or similar methods can be used."""
-        return None
-        pass
+        return None, None, 0
 
-    def _poll(self, screen=True, calibration=False, filter=True, interpolate=False): #ADD: log point in separate location if it is filtered out
+    def _poll(self, filter=True, interpolate=False): #ADD: log point in separate location if it is filtered out
+        """ Poll the OpenIris client for the latest eye data.
+        Parameters:
+            filter (bool): Whether to apply filtering to the data.
+            interpolate (bool): Whether to interpolate missing data.
+        Returns:
+            - position: The processed eye position.
+            - data: The latest eye data.
+            - data_time: The timestamp of the latest eye data.
+            - marker: An integer indicating the type of data returned:
+                0: Filtered data
+                1: Interpolated data (if interpolate is True)
+                2: No data (if no interpolation and data is filtered, if the client is not connected, recording is not enabled)
+                3: Unfiltered raw data
+        """
         if self.isConnected() and self.isRecordingEnabled():
             self.last_data = self._latest_data
             self.last_data_time = self._latest_data_time
@@ -134,40 +193,31 @@ class  DPIEyeTracker(EyeTrackerDevice):
             self._latest_data, self._latest_data_time = self._client.fetch_next_data(True)
             if filter:
                 if self.filter(self._latest_data):
-                    if calibration and screen:
-                        # real position, with time
-                        return self.find_pos(self._latest_data), self._latest_data_time, 4
-                    elif calibration:
-                        # filtered raw, with time
-                        return self._latest_data, self._latest_data_time, 2
-                    if screen:
-                        # real position
-                        return self.find_pos(self._latest_data), 4
-                    else:
-                        # filtered raw
-                        return self._latest_data, 2
-                else:
-                    # If the data is filtered out, return None with a marker for filtered data
-                    if interpolate:
-                        self._latest_data, self._latest_data_time = self.interpolate()
-                        return self._latest_data, 5
-                    ret_raw = self._latest_data
-                    ret_time = self._latest_data_time
-                    self._latest_data = None
-                    self._latest_data_time = 0
-                    return ret_raw, ret_time, 3
+                        return self.find_pos(self._latest_data), self._latest_data, self._latest_data_time, 0
+                else: #erroneous data
+                    if interpolate: # interpolate missing data
+                        position, self._latest_data, self._latest_data_time = self.interpolate()
+                        return position, self._latest_data, self._latest_data_time, 1
+                    else: # void data
+                        self._latest_data = None
+                        self._latest_data_time = 0
+                        return None, None, 2
             else:
-                return self._latest_data, self._latest_data_time, 1
+                return self.find_pos(self._latest_data), self._latest_data, self._latest_data_time, 3
         else:
             # If the client is not connected or recording is not enabled, return None with a marker
                 if self._latest_data is not None:
                     self._latest_data = None
                     self._latest_data_time = 0
-                return None, 6
+                return None, None, 2
 
     def runSetupProcedure(self, calibration_args={}):
         """
-        Run calibration and establish filterig values
+        Run calibration and establish filtering values.
+        Parameters:
+            calibration_args (dict): Arguments for the calibration procedure.
+        Returns:
+            None
         """
         calibration = DPICalibrationProcedure(self, calibration_args)
         calibration.runCalibration()

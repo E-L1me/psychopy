@@ -40,7 +40,7 @@ class DataCollector(threading.Thread):
         print(f"{self.name} started.")
         while not self.stop_event.is_set():
             # Simulate data collection
-            raw_data = random.randint(-50, 150)
+            raw_data, raw_time = random.randint(-50, 150)
             
             # Get current filtering values safely
             with self.filtering_values_lock:
