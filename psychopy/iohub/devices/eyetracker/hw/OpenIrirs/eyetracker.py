@@ -138,13 +138,13 @@ class  DPIEyeTracker(EyeTrackerDevice):
         """
         if screen_thresh is not None:
             self.screen_thresh = screen_thresh
-        if pupil_area_thresh is not None:
+        if pupil_area_thresh is not None: # Continuously updated
             self.pupil_area_thresh = pupil_area_thresh
         if P4_thresh is not None:
             self.P4_thresh = P4_thresh
         if CR_thresh is not None:
             self.CR_thresh = CR_thresh
-        if P4_speed_thresh is not None:
+        if P4_speed_thresh is not None: # Continuously updated
             self.P4_speed_thresh = P4_speed_thresh
 
     def find_pos(self, data):
@@ -178,13 +178,13 @@ class  DPIEyeTracker(EyeTrackerDevice):
             interpolate (bool): Whether to interpolate missing data.
         Returns:
             - position: The processed eye position.
-            - data: The latest eye data.
+            - raw_data: The latest eye data.
             - data_time: The timestamp of the latest eye data.
             - marker: An integer indicating the type of data returned:
                 0: Filtered data
                 1: Interpolated data (if interpolate is True)
                 2: No data (if no interpolation and data is filtered, if the client is not connected, recording is not enabled)
-                3: Unfiltered raw data
+                3: Unfiltered data
         """
         if self.isConnected() and self.isRecordingEnabled():
             self.last_data = self._latest_data
@@ -193,23 +193,23 @@ class  DPIEyeTracker(EyeTrackerDevice):
             self._latest_data, self._latest_data_time = self._client.fetch_next_data(True)
             if filter:
                 if self.filter(self._latest_data):
-                        return self.find_pos(self._latest_data), self._latest_data, self._latest_data_time, 0
+                        return [self.find_pos(self._latest_data), self._latest_data, self._latest_data_time, 0]
                 else: #erroneous data
                     if interpolate: # interpolate missing data
                         position, self._latest_data, self._latest_data_time = self.interpolate()
-                        return position, self._latest_data, self._latest_data_time, 1
+                        return [position, self._latest_data, self._latest_data_time, 1]
                     else: # void data
                         self._latest_data = None
                         self._latest_data_time = 0
-                        return None, None, 2
+                        return [None, None, None, 2]
             else:
-                return self.find_pos(self._latest_data), self._latest_data, self._latest_data_time, 3
+                return [self.find_pos(self._latest_data), self._latest_data, self._latest_data_time, 3]
         else:
             # If the client is not connected or recording is not enabled, return None with a marker
                 if self._latest_data is not None:
                     self._latest_data = None
                     self._latest_data_time = 0
-                return None, None, 2
+                return [None, None, None, 2]
 
     def runSetupProcedure(self, calibration_args={}):
         """
