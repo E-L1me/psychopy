@@ -219,14 +219,20 @@ class  DPIEyeTracker(EyeTrackerDevice):
         Returns:
             None
         """
-        calibration = DPICalibrationProcedure(self, calibration_args)
-        calibration.runCalibration()
-        self.cal = calibration.cal
-        self.screen_thresh = calibration.screen_thresh
-        self.pupil_area_thresh = calibration.pupil_area_thresh
-        self.P4_thresh = calibration.P4_thresh
-        self.CR_thresh = calibration.CR_thresh
-        self.P4_speed_thresh = calibration.P4_speed_thresh
+        try:
+            calibration = DPICalibrationProcedure(self, calibration_args)
+            calibration.runCalibration()
+            self.cal = calibration.cal
+            self.screen_thresh = calibration.screen_thresh
+            self.pupil_area_thresh = calibration.pupil_area_thresh
+            self.P4_thresh = calibration.P4_thresh
+            self.CR_thresh = calibration.CR_thresh
+            self.P4_speed_thresh = calibration.P4_speed_thresh
 
-        self.setConnectionState(True)
-        self.setRecordingState(True)
+            self.setConnectionState(True)
+            self.setRecordingState(True)
+            
+            return True
+        except Exception as e:
+            print(f"Error during setup procedure: {e}")
+            return False

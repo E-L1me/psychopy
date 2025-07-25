@@ -1,3 +1,5 @@
+import numpy as np
+import time
 from psychopy.iohub.devices.eyetracker.calibration import BaseCalibrationProcedure
 
 from psychopy import visual, layout
@@ -17,10 +19,11 @@ class DPICalibrationProcedure(BaseCalibrationProcedure):
 
     def __init__(self, eyetrackerInterface, calibration_args):
         BaseCalibrationProcedure.__init(self, eyetrackerInterface, calibration_args, allow_escape_in_progress=True)
+        self.eyetracker = eyetrackerInterface
         
         #dataset
-        self.dataset = None #dataset structured in the form = {'screen_point': eye dataset, ....}
-        
+        self.dataset = [] #dataset structured in the form = {'screen_point': eye dataset, ....}
+
         #output values
         self.cal = None
         self.pupil_area_thresh = {'max': 0.0, 'min': 0.0}
@@ -68,7 +71,10 @@ class DPICalibrationProcedure(BaseCalibrationProcedure):
             animate_expansion_ratio = self.getCalibSetting(['target_attributes', 'animate', 'expansion_ratio'])
             animate_contract_only = self.getCalibSetting(['target_attributes', 'animate', 'contract_only'])
 
+            self.dataset.append({'x': x, 'y': y, 'data': []})
+
             while currentTime()-start_time <= target_delay:
+
                 if animate_enable and i > 0:
                     t = (currentTime()-start_time) / target_delay
                     v1 = self.cal_target_list[i-1]
@@ -90,8 +96,8 @@ class DPICalibrationProcedure(BaseCalibrationProcedure):
                 break
 
             self.resetTargetProperties()
-            if self.targetClassHassPlayPause and self.targetStim.status != PLAYING:
-                self.targetSTim.play()
+            if self.targetClassHasPlayPause and self.targetStim.status != PLAYING:
+                self.targetStim.play()
             self.drawCalibrationTarget((x,y))
 
             start_time = currentTime()
@@ -103,6 +109,8 @@ class DPICalibrationProcedure(BaseCalibrationProcedure):
             while currentTime() - start_time <= target_duration:
                 elapsed_time = currentTime() - start_time 
                 new_size = t = None
+                self.dataset[-1]['data'].append(self.eyetracker._poll())
+
                 if animate_contract_only:
                     t = elapsed_time / target_duration
                     new_size = stim_size - t * (stim_size - min_stim_size)
@@ -116,11 +124,13 @@ class DPICalibrationProcedure(BaseCalibrationProcedure):
                 if new_size:
                     self.targetStim.size = new_size, new_size
                 
+                
                 self.targetStim.draw()
                 self.window.flip()
             
             if auto_pace is False:
                 while 1: 
+                    self.dataset[-1]['data'].append([self.eyetracker._poll(), time.time()])
                     if self.targetClassHasPlayPause and self.targetStim.status == PLAYING:
                         self.targetStim.draw()
                         self.window.flip()
@@ -158,7 +168,50 @@ class DPICalibrationProcedure(BaseCalibrationProcedure):
         if abort_calibration is False:
             self.showFinishedScreen()
         
-        return not abort_calibration
+        X = []
+        Y = []
+        data_medians = []
+        for point in self.dataset:
+            data = [d for d in point['data']]
+            if len(data) > 0:
+                CRP4s = [(d[0].CR.x-d[0].P4.x, d[0].CR.y-d[0].P4.y) for d in data if d is not None]
+                median_CRP4x = np.median([d[0] for d in CRP4s])
+                median_CRP4y = np.median([d[1] for d in CRP4s])
+                X.append([median_CRP4x, median_CRP4y])
+                Y.append([point['x'], point['y']])
+
+                median_P4x = np.median([d[0].P4.x for d in data if d is not None])
+                median_P4y = np.median([d[0].P4.y for d in data if d is not None])
+                median_CRx = np.median([d[0].CR.x for d in data if d is not None])
+                median_CRy = np.median([d[0].CR.y for d in data if d is not None])
+                median_pupil_area = np.median([d[0].pupil_area for d in data if d is not None])
+                dd = np.linalg.norm(np.diff([[d[0].P4.x, d[0].P4.y] for d in data if d is not None], axis=0), axis=1)
+                dt = np.diff([d[1] for d in data if d is not None])
+                speeds = dd / dt
+                median_speed = np.median(speeds) if len(speeds) > 0 else print("ERROR: No speeds calculated")
+                data_medians.append({
+                    'screen_point': point,
+                    'median_P4': (median_P4x, median_P4y),
+                    'median_CR': (median_CRx, median_CRy),
+                    'median_pupil_area': median_pupil_area,
+                    'median_speed': median_speed,
+                })
+            else:
+                print(f"ERROR: failed to collect data for {point['x'], point['y']}")
+        
+        self.cal = np.linalg.pinv(X) @ Y
+        self.pupil_area_thresh = {'max': np.max([d['median_pupil_area'] for d in data_medians]),
+                                  'min': np.min([d['median_pupil_area'] for d in data_medians])}
+        self.P4_thresh = {'maxx': np.max([d['median_P4'][0] for d in data_medians]),
+                          'minx': np.min([d['median_P4'][0] for d in data_medians]),
+                          'maxy': np.max([d['median_P4'][1] for d in data_medians]),
+                          'miny': np.min([d['median_P4'][1] for d in data_medians])}
+        self.CR_thresh = {'maxx': np.max([d['median_CR'][0] for d in data_medians]),
+                          'minx': np.min([d['median_CR'][0] for d in data_medians]),
+                          'maxy': np.max([d['median_CR'][1] for d in data_medians]),
+                          'miny': np.min([d['median_CR'][1] for d in data_medians])}
+        self.P4_speed_thresh = np.max([d['median_speed'] for d in data_medians]) + 10 * np.std([d['median_speed'] for d in data_medians])
+        return True
     
     def showIntroScreen(self, text_msg='Press SPACE to Start Calibration; Press ESCAPE to Exit.'):
 

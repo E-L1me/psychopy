@@ -103,6 +103,7 @@ class Renderer(threading.Thread):
             try:
                 pos = self.screen_queue.get() # Small timeout to allow checking stop_event
                 #render image at position pos
+                print(pos)  # placeholder for rendering logic
                 self.processing_count += 1
             except queue.Empty:
                 pass # No data in queue, continue to check for updates/stop_event
@@ -111,216 +112,216 @@ class Renderer(threading.Thread):
 
         print(f"{self.name} stopped. Processed {self.processing_count} renders.")
 
-    def showIntroScreen(self, text_msg='Press SPACE to Start Calibration; Press ESCAPE to Exit.'):
+    # def showIntroScreen(self, text_msg='Press SPACE to Start Calibration; Press ESCAPE to Exit.'):
 
-        self.clearAllEventBuffers()
+    #     self.clearAllEventBuffers()
 
-        while True:
-            self.textLineStim.setText(text_msg)
-            self.textLineStim.draw()
-            self.window.flip()
+    #     while True:
+    #         self.textLineStim.setText(text_msg)
+    #         self.textLineStim.draw()
+    #         self.window.flip()
 
-            msg = self.getNextMsg()
-            if msg == 'SPACE_KEY_ACTION':
-                self.clearAllEventBuffers()
-                return True
-            elif msg == 'QUIT':
-                self.clearAllEventBuffers()
-                return False
-            self.MsgPump()
-            gevent.sleep(0.001)
+    #         msg = self.getNextMsg()
+    #         if msg == 'SPACE_KEY_ACTION':
+    #             self.clearAllEventBuffers()
+    #             return True
+    #         elif msg == 'QUIT':
+    #             self.clearAllEventBuffers()
+    #             return False
+    #         self.MsgPump()
+    #         gevent.sleep(0.001)
     
-    def showFinishedScreen(self, text_msg="Calibration Complete. Press 'SPACE' key to continue."):
+    # def showFinishedScreen(self, text_msg="Calibration Complete. Press 'SPACE' key to continue."):
         
-        self.clearAllEventBuffers()
+    #     self.clearAllEventBuffers()
 
-        while True:
-            self.textLineStim.setText(text_msg)
-            self.textLineStim.draw()
-            self.window.flip()
+    #     while True:
+    #         self.textLineStim.setText(text_msg)
+    #         self.textLineStim.draw()
+    #         self.window.flip()
 
-            msg = self.getNextMsg()
-            if msg in ['SPACE_KEY_ACTION', 'QUIT']:
-                self.clearAllEventBuffers()
-                return True
+    #         msg = self.getNextMsg()
+    #         if msg in ['SPACE_KEY_ACTION', 'QUIT']:
+    #             self.clearAllEventBuffers()
+    #             return True
             
-            self.MsgPump()
-            gevent.sleep(0.001)
+    #         self.MsgPump()
+    #         gevent.sleep(0.001)
     
-    def createGraphics(self):
-        """
-        """
-        color_type = self.getCalibSetting('color_type')
-        unit_type = self.getCalibSetting('unit_type')
+    # def createGraphics(self):
+    #     """
+    #     """
+    #     color_type = self.getCalibSetting('color_type')
+    #     unit_type = self.getCalibSetting('unit_type')
 
-        def setDefaultCalibrationTarget():
-            # convert sizes to stimulus units
-            radiusPix = self.getCalibSetting(['target_attributes', 'outer_diameter']) / 2
-            radiusObj = layout.Size(radiusPix, units=unit_type, win=self.window)
-            radius = getattr(radiusObj, unit_type)[1]
-            innerRadiusPix = self.getCalibSetting(['target_attributes', 'inner_diameter']) / 2
-            innerRadiusObj = layout.Size(innerRadiusPix, units=unit_type, win=self.window)
-            innerRadius = getattr(innerRadiusObj, unit_type)[1]
-            # make target
-            self.targetStim = visual.TargetStim(
-                self.window, name="CP", style="circles",
-                radius=radius,
-                fillColor=self.getCalibSetting(['target_attributes', 'outer_fill_color']),
-                borderColor=self.getCalibSetting(['target_attributes', 'outer_line_color']),
-                lineWidth=self.getCalibSetting(['target_attributes', 'outer_stroke_width']),
-                innerRadius=innerRadius,
-                innerFillColor=self.getCalibSetting(['target_attributes', 'inner_fill_color']),
-                innerBorderColor=self.getCalibSetting(['target_attributes', 'inner_line_color']),
-                innerLineWidth=self.getCalibSetting(['target_attributes', 'inner_stroke_width']),
-                pos=(0, 0),
-                units=unit_type,
-                colorSpace=color_type,
-                autoLog=False
-            )
+    #     def setDefaultCalibrationTarget():
+    #         # convert sizes to stimulus units
+    #         radiusPix = self.getCalibSetting(['target_attributes', 'outer_diameter']) / 2
+    #         radiusObj = layout.Size(radiusPix, units=unit_type, win=self.window)
+    #         radius = getattr(radiusObj, unit_type)[1]
+    #         innerRadiusPix = self.getCalibSetting(['target_attributes', 'inner_diameter']) / 2
+    #         innerRadiusObj = layout.Size(innerRadiusPix, units=unit_type, win=self.window)
+    #         innerRadius = getattr(innerRadiusObj, unit_type)[1]
+    #         # make target
+    #         self.targetStim = visual.TargetStim(
+    #             self.window, name="CP", style="circles",
+    #             radius=radius,
+    #             fillColor=self.getCalibSetting(['target_attributes', 'outer_fill_color']),
+    #             borderColor=self.getCalibSetting(['target_attributes', 'outer_line_color']),
+    #             lineWidth=self.getCalibSetting(['target_attributes', 'outer_stroke_width']),
+    #             innerRadius=innerRadius,
+    #             innerFillColor=self.getCalibSetting(['target_attributes', 'inner_fill_color']),
+    #             innerBorderColor=self.getCalibSetting(['target_attributes', 'inner_line_color']),
+    #             innerLineWidth=self.getCalibSetting(['target_attributes', 'inner_stroke_width']),
+    #             pos=(0, 0),
+    #             units=unit_type,
+    #             colorSpace=color_type,
+    #             autoLog=False
+    #         )
 
-        if self._calibration_args.get('target_type') == 'CIRCLE_TARGET':
-            setDefaultCalibrationTarget()
-        else:
-            self.targetStim = createCustomCalibrationStim(self.window, self._calibration_args)
-            if self.targetStim is None:
-                # Error creating custom stim, so use default target stim type
-                setDefaultCalibrationTarget()
+    #     if self._calibration_args.get('target_type') == 'CIRCLE_TARGET':
+    #         setDefaultCalibrationTarget()
+    #     else:
+    #         self.targetStim = createCustomCalibrationStim(self.window, self._calibration_args)
+    #         if self.targetStim is None:
+    #             # Error creating custom stim, so use default target stim type
+    #             setDefaultCalibrationTarget()
 
-        self.originalTargetSize = self.targetStim.size
-        self.targetClassHasPlayPause = hasattr(self.targetStim, 'play') and hasattr(self.targetStim, 'pause')
+    #     self.originalTargetSize = self.targetStim.size
+    #     self.targetClassHasPlayPause = hasattr(self.targetStim, 'play') and hasattr(self.targetStim, 'pause')
 
-        self.imagetitlestim = None
+    #     self.imagetitlestim = None
 
-        tctype = color_type
-        tcolor = self.getCalibSetting(['text_color'])
-        if tcolor is None:
-            # If no calibration text color provided, base it on the window background color
-            from psychopy.iohub.util import complement
-            sbcolor = self.getCalibSetting(['screen_background_color'])
-            if sbcolor is None:
-                sbcolor = self.window.color
-            from psychopy.colors import Color
-            tcolor_obj = Color(sbcolor, color_type)
-            tcolor = complement(*tcolor_obj.rgb255)
-            tctype = 'rgb255'
+    #     tctype = color_type
+    #     tcolor = self.getCalibSetting(['text_color'])
+    #     if tcolor is None:
+    #         # If no calibration text color provided, base it on the window background color
+    #         from psychopy.iohub.util import complement
+    #         sbcolor = self.getCalibSetting(['screen_background_color'])
+    #         if sbcolor is None:
+    #             sbcolor = self.window.color
+    #         from psychopy.colors import Color
+    #         tcolor_obj = Color(sbcolor, color_type)
+    #         tcolor = complement(*tcolor_obj.rgb255)
+    #         tctype = 'rgb255'
 
-        instuction_text = 'Press SPACE to Start Calibration; ESCAPE to Exit.'
-        self.textLineStim = visual.TextStim(self.window, text=instuction_text,
-                                            pos=(0, 0), height=36,
-                                            color=tcolor, colorSpace=tctype,
-                                            units='pix', wrapWidth=self.width * 0.9)
+    #     instuction_text = 'Press SPACE to Start Calibration; ESCAPE to Exit.'
+    #     self.textLineStim = visual.TextStim(self.window, text=instuction_text,
+    #                                         pos=(0, 0), height=36,
+    #                                         color=tcolor, colorSpace=tctype,
+    #                                         units='pix', wrapWidth=self.width * 0.9)
     
-    def getCalibSetting(self, setting):
-        if isinstance(setting, str):
-            setting = [setting, ]
-        calibration_args = self._calibration_args
-        if setting:
-            for s in setting[:-1]:
-                calibration_args = calibration_args.get(s)
-            return calibration_args.get(setting[-1])
+    # def getCalibSetting(self, setting):
+    #     if isinstance(setting, str):
+    #         setting = [setting, ]
+    #     calibration_args = self._calibration_args
+    #     if setting:
+    #         for s in setting[:-1]:
+    #             calibration_args = calibration_args.get(s)
+    #         return calibration_args.get(setting[-1])
 
-    def clearAllEventBuffers(self):
-        self._eyetracker._iohub_server.eventBuffer.clear()
-        for d in self._eyetracker._iohub_server.devices:
-            d.clearEvents()
+    # def clearAllEventBuffers(self):
+    #     self._eyetracker._iohub_server.eventBuffer.clear()
+    #     for d in self._eyetracker._iohub_server.devices:
+    #         d.clearEvents()
 
-    def _registerEventMonitors(self):
-        kbDevice = None
-        if self._eyetracker._iohub_server:
-            for dev in self._eyetracker._iohub_server.devices:
-                if dev.__class__.__name__ == 'Keyboard':
-                    kbDevice = dev
+    # def _registerEventMonitors(self):
+    #     kbDevice = None
+    #     if self._eyetracker._iohub_server:
+    #         for dev in self._eyetracker._iohub_server.devices:
+    #             if dev.__class__.__name__ == 'Keyboard':
+    #                 kbDevice = dev
 
-        if kbDevice:
-            eventIDs = []
-            for event_class_name in kbDevice.__class__.EVENT_CLASS_NAMES:
-                eventIDs.append(getattr(EC, convertCamelToSnake(event_class_name[:-5], False)))
+    #     if kbDevice:
+    #         eventIDs = []
+    #         for event_class_name in kbDevice.__class__.EVENT_CLASS_NAMES:
+    #             eventIDs.append(getattr(EC, convertCamelToSnake(event_class_name[:-5], False)))
 
-            self._ioKeyboard = kbDevice
-            self._ioKeyboard._addEventListener(self, eventIDs)
-        else:
-            print2err('Warning: %s could not connect to Keyboard device for events.' % self.__class__.__name__)
+    #         self._ioKeyboard = kbDevice
+    #         self._ioKeyboard._addEventListener(self, eventIDs)
+    #     else:
+    #         print2err('Warning: %s could not connect to Keyboard device for events.' % self.__class__.__name__)
 
-    def _unregisterEventMonitors(self):
-        if self._ioKeyboard:
-            self._ioKeyboard._removeEventListener(self)
+    # def _unregisterEventMonitors(self):
+    #     if self._ioKeyboard:
+    #         self._ioKeyboard._removeEventListener(self)
 
-    def _handleEvent(self, event):
-        event_type_index = DeviceEvent.EVENT_TYPE_ID_INDEX
-        if event[event_type_index] == EC.KEYBOARD_RELEASE:
-            ek = event[self._keyboard_key_index]
-            if isinstance(ek, bytes):
-                ek = ek.decode('utf-8')
-            if ek == ' ' or ek == 'space':
-                self._msg_queue.append('SPACE_KEY_ACTION')
-                self.clearAllEventBuffers()
-            elif ek == 'escape':
-                self._msg_queue.append('QUIT')
-                self.clearAllEventBuffers()
+    # def _handleEvent(self, event):
+    #     event_type_index = DeviceEvent.EVENT_TYPE_ID_INDEX
+    #     if event[event_type_index] == EC.KEYBOARD_RELEASE:
+    #         ek = event[self._keyboard_key_index]
+    #         if isinstance(ek, bytes):
+    #             ek = ek.decode('utf-8')
+    #         if ek == ' ' or ek == 'space':
+    #             self._msg_queue.append('SPACE_KEY_ACTION')
+    #             self.clearAllEventBuffers()
+    #         elif ek == 'escape':
+    #             self._msg_queue.append('QUIT')
+    #             self.clearAllEventBuffers()
 
-    def MsgPump(self):
-        # keep the psychopy window happy ;)
-        if self.currentTime() - self._lastMsgPumpTime > self.IOHUB_HEARTBEAT_INTERVAL:
-            # try to keep ioHub from being blocked. ;(
-            if self._eyetracker._iohub_server:
-                for dm in self._eyetracker._iohub_server.deviceMonitors:
-                    dm.device._poll()
-                self._eyetracker._iohub_server.processDeviceEvents()
-            self._lastMsgPumpTime = self.currentTime()
+    # def MsgPump(self):
+    #     # keep the psychopy window happy ;)
+    #     if self.currentTime() - self._lastMsgPumpTime > self.IOHUB_HEARTBEAT_INTERVAL:
+    #         # try to keep ioHub from being blocked. ;(
+    #         if self._eyetracker._iohub_server:
+    #             for dm in self._eyetracker._iohub_server.deviceMonitors:
+    #                 dm.device._poll()
+    #             self._eyetracker._iohub_server.processDeviceEvents()
+    #         self._lastMsgPumpTime = self.currentTime()
 
-    def getNextMsg(self):
-        if len(self._msg_queue) > 0:
-            msg = self._msg_queue[0]
-            self._msg_queue = self._msg_queue[1:]
-            return msg
+    # def getNextMsg(self):
+    #     if len(self._msg_queue) > 0:
+    #         msg = self._msg_queue[0]
+    #         self._msg_queue = self._msg_queue[1:]
+    #         return msg
     
-    def clearCalibrationWindow(self):
-        self.window.flip(clearBuffer=True)
+    # def clearCalibrationWindow(self):
+    #     self.window.flip(clearBuffer=True)
 
-    def showIntroScreen(self, text_msg='Press SPACE to Start Calibration; ESCAPE to Exit.'):
+    # def showIntroScreen(self, text_msg='Press SPACE to Start Calibration; ESCAPE to Exit.'):
 
-        self.clearAllEventBuffers()
+    #     self.clearAllEventBuffers()
 
-        while True:
-            self.textLineStim.setText(text_msg)
-            self.textLineStim.draw()
-            self.window.flip()
+    #     while True:
+    #         self.textLineStim.setText(text_msg)
+    #         self.textLineStim.draw()
+    #         self.window.flip()
 
-            msg = self.getNextMsg()
-            if msg == 'SPACE_KEY_ACTION':
-                self.clearAllEventBuffers()
-                return True
-            elif msg == 'QUIT':
-                self.clearAllEventBuffers()
-                return False
-            self.MsgPump()
-            gevent.sleep(0.001)
+    #         msg = self.getNextMsg()
+    #         if msg == 'SPACE_KEY_ACTION':
+    #             self.clearAllEventBuffers()
+    #             return True
+    #         elif msg == 'QUIT':
+    #             self.clearAllEventBuffers()
+    #             return False
+    #         self.MsgPump()
+    #         gevent.sleep(0.001)
 
-    def showFinishedScreen(self, text_msg="Calibration Complete. Press 'SPACE' key to continue."):
+    # def showFinishedScreen(self, text_msg="Calibration Complete. Press 'SPACE' key to continue."):
 
-        self.clearAllEventBuffers()
+    #     self.clearAllEventBuffers()
 
-        while True:
-            self.textLineStim.setText(text_msg)
-            self.textLineStim.draw()
-            self.window.flip()
+    #     while True:
+    #         self.textLineStim.setText(text_msg)
+    #         self.textLineStim.draw()
+    #         self.window.flip()
 
-            msg = self.getNextMsg()
-            if msg in ['SPACE_KEY_ACTION', 'QUIT']:
-                self.clearAllEventBuffers()
-                return True
+    #         msg = self.getNextMsg()
+    #         if msg in ['SPACE_KEY_ACTION', 'QUIT']:
+    #             self.clearAllEventBuffers()
+    #             return True
 
-            self.MsgPump()
-            gevent.sleep(0.001)
+    #         self.MsgPump()
+    #         gevent.sleep(0.001)
 
 
-    def resetTargetProperties(self):
-        self.targetStim.size = self.originalTargetSize
+    # def resetTargetProperties(self):
+    #     self.targetStim.size = self.originalTargetSize
 
-    def drawCalibrationTarget(self, tp):
-        self.targetStim.setPos(tp)
-        self.targetStim.draw()
-        return self.window.flip(clearBuffer=True)
+    # def drawCalibrationTarget(self, tp):
+    #     self.targetStim.setPos(tp)
+    #     self.targetStim.draw()
+    #     return self.window.flip(clearBuffer=True)
 
 
 
@@ -425,11 +426,14 @@ class DataProcessor(threading.Thread):
 
 # --- Main execution ---
 if __name__ == "__main__":
+    eyetracker = DPIEyeTracker()
+    eyetracker.runSetupProcedure()
+    
     collector_thread = DataCollector(
         "CollectorThread", filtered_data_queue, filtering_values_lock, stop_event
     )
     processor_thread = DataProcessor(
-        "ProcessorThread", filtered_data_queue, filtering_values_lock, stop_event, calculation_period_ms=100
+        "ProcessorThread", filtered_data_queue, screen_position_queue, filtering_values_lock, stop_event, calculation_period_ms=100
     )
     renderer_thread = Renderer(
         "RendererThread", screen_position_queue, filtering_values_lock, stop_event, calculation_period_ms=100
@@ -449,10 +453,11 @@ if __name__ == "__main__":
         for i in range(run_duration_seconds * 10): # Check every 100ms
             time.sleep(0.1)
             with filtering_values_lock:
-                print(f"Main thread: Current filters: {filtering_values}. Queue size: {filtered_data_queue.qsize()}")
+                print(f"Main thread: Current filters: {filtering_values}. Filter queue size: {filtered_data_queue.qsize()}. Screen queue size: {screen_position_queue.qsize()}")
 
     except KeyboardInterrupt:
         print("\nCtrl+C detected. Signaling threads to stop...")
+    
     finally:
         stop_event.set() # Signal both threads to stop
         collector_thread.join() # Wait for collector to finish
