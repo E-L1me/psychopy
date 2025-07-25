@@ -11,10 +11,23 @@ from psychopy.constants import PLAYING
 
 currentTime = Computer.getTime
 
+
+
 class DPICalibrationProcedure(BaseCalibrationProcedure):
 
     def __init__(self, eyetrackerInterface, calibration_args):
         BaseCalibrationProcedure.__init(self, eyetrackerInterface, calibration_args, allow_escape_in_progress=True)
+        
+        #dataset
+        self.dataset = None #dataset structured in the form = {'screen_point': eye dataset, ....}
+        
+        #output values
+        self.cal = None
+        self.pupil_area_thresh = {'max': 0.0, 'min': 0.0}
+        self.P4_thresh = {'maxx': 0.0, 'minx': 0.0, 'maxy': 0.0, 'miny': 0.0} #values to check if P4 is within calibrated range
+        self.CR_thresh = {'maxx': 0.0, 'minx': 0.0, 'maxy': 0.0, 'miny': 0.0} #values to check if CR is within calibrated range
+        self.screen_thresh = {'maxx': 0.0, 'minx': 0.0, 'maxy': 0.0, 'miny': 0.0} #values to check if position on screen is within calibrated range
+        self.P4_speed_thresh = 0.0 #speed threshold for P4 movement
 
     def runCalibration(self):
         """Run Calibration Sequence
@@ -147,14 +160,11 @@ class DPICalibrationProcedure(BaseCalibrationProcedure):
         
         return not abort_calibration
     
-    def clearCalibrationWindow(self):
-        self.window.flip(clearBuffer=True)
-    
     def showIntroScreen(self, text_msg='Press SPACE to Start Calibration; Press ESCAPE to Exit.'):
 
         self.clearAllEventBuffers()
 
-        while true:
+        while True:
             self.textLineStim.setText(text_msg)
             self.textLineStim.draw()
             self.window.flip()
@@ -185,3 +195,15 @@ class DPICalibrationProcedure(BaseCalibrationProcedure):
             
             self.MsgPump()
             gevent.sleep(0.001)
+    
+    def getCalibMatrix(self):
+        pass
+
+    def getThresholdValues(self):
+        pass
+
+    def saveCalibrationData(self, data):
+        pass
+
+
+        

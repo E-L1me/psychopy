@@ -146,7 +146,8 @@ class OpenIrisClient:
         try:
             self.sock.sendto("WAITFORDATA".encode("utf-8"), self.server_address)
             data = self.sock.recvfrom(8192)  # Adjust the buffer size as needed
-            return data[0].decode("utf-8")
+            data_time = time.time()
+            return data[0].decode("utf-8"), data_time
         except Exception as e:
             if debug:
                 print(f"Error receiving data: {e}")
@@ -165,21 +166,34 @@ class OpenIrisClient:
         """
             
     def fetch_next_data_json(self, debug=False):
-        raw_data = self.fetch_next_data_raw(debug)
+        raw_data, data_time = self.fetch_next_data_raw(debug)
         try:
             # Attempt to parse JSON from the received data
-            return json.loads(raw_data)
+            return json.loads(raw_data), data_time
         except json.JSONDecodeError as e:
             if debug:
                 print(f"Failed to decode JSON. Raw data: {raw_data}")
-        return {}
-    
+        return {}, data_time
+
     def fetch_next_data(self, debug=False):
-        return EyesData(self.fetch_next_data_json(debug))
-    
+        return EyesData(self.fetch_next_data_json(debug)[0]), self.fetch_next_data_json(debug)[1]
+
     def __enter__(self):
         self.sock.connect(self.server_address)
         return self
+    
+    def socket_connected(self):
+        try:
+            self.socket.sendall(b"Hello, server!")
+            return True
+        except (BrokenPipeError, ConnectionResetError) as e:
+            print(f"Error sending data: Connection lost ({e}).")
+            # Handle reconnection logic here
+            return False
+        except Exception as e:
+            print(f"An unexpected error occurred while sending: {e}")
+            return False
+
     
     def __exit__(self, exc_type, exc_value, traceback):
         self.sock.close()
