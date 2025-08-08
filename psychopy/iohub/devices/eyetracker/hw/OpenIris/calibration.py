@@ -39,7 +39,10 @@ class DPICalibrationProcedure(BaseCalibrationProcedure):
         """Run Calibration Sequence
         """
 
+        print("Starting Calibration Procedure")
+
         if self.showIntroScreen() is False:
+            print("Calibration Procedure Aborted")
             return False
 
         target_delay = self.getCalibSetting('target_delay')
@@ -112,7 +115,7 @@ class DPICalibrationProcedure(BaseCalibrationProcedure):
             while currentTime() - start_time <= target_duration:
                 elapsed_time = currentTime() - start_time 
                 new_size = t = None
-                self.dataset[-1]['data'].append(self.eyetracker._poll())
+                self.dataset[-1]['data'].append(self.eyetracker._poll_basic(), time.time())
 
                 if animate_contract_only:
                     t = elapsed_time / target_duration
@@ -133,7 +136,7 @@ class DPICalibrationProcedure(BaseCalibrationProcedure):
             
             if auto_pace is False:
                 while 1: 
-                    self.dataset[-1]['data'].append([self.eyetracker._poll(), time.time()])
+                    self.dataset[-1]['data'].append([self.eyetracker._poll_basic(), time.time()])
                     if self.targetClassHasPlayPause and self.targetStim.status == PLAYING:
                         self.targetStim.draw()
                         self.window.flip()
@@ -171,11 +174,17 @@ class DPICalibrationProcedure(BaseCalibrationProcedure):
         if abort_calibration is False:
             self.showFinishedScreen()
         
+        self.calculateCalibration()
+
+        return True
+
+    def calculateCalibration(self):
         X = []
         Y = []
         data_medians = []
         for point in self.dataset:
             data = [d for d in point['data']]
+            data = [[d[0]['Right'], d[1]] for d in data if d[0] is not None]
             if len(data) > 0:
                 CRP4s = [(d[0].CR.x-d[0].P4.x, d[0].CR.y-d[0].P4.y) for d in data if d is not None]
                 median_CRP4x = np.median([d[0] for d in CRP4s])
@@ -214,8 +223,8 @@ class DPICalibrationProcedure(BaseCalibrationProcedure):
                           'maxy': np.max([d['median_CR'][1] for d in data_medians]),
                           'miny': np.min([d['median_CR'][1] for d in data_medians])}
         self.P4_speed_thresh = np.max([d['median_speed'] for d in data_medians]) + 10 * np.std([d['median_speed'] for d in data_medians])
-        return True
-    
+
+
     def showIntroScreen(self, text_msg='Press SPACE to Start Calibration; Press ESCAPE to Exit.'):
 
         self.clearAllEventBuffers()

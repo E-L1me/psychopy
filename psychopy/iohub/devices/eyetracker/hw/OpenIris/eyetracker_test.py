@@ -5,7 +5,7 @@ import os
 import json
 import time
 from psychopy.iohub.devices.eyetracker.hw.OpenIris.calibration import DPICalibrationProcedure
-from psychopy.iohub.devices.eyetracker.hw.OpenIris.client import OpenIrisClient
+from psychopy.iohub.devices.eyetracker.hw.OpenIris.client_test import OpenIrisClient
 
 class  DPIEyeTracker():
     """
@@ -24,13 +24,12 @@ class  DPIEyeTracker():
     - data should come with a marker: [1] unfiltered raw, [2] filtered raw, [3] erroneous raw, [4] real position, [5] interpolated position, [6] none
     """
 
-    def __init__(self, *args, **kwargs):
+    def __init__(self, client, **kwargs):
         self._latest_data = None
         self._latest_data_time = 0
 
         # OpenIris client
-        self._client = None
-        self._recording = False
+        self._client = client
         self._lastEventTime = 0
         self._configuration = kwargs
         
@@ -44,53 +43,10 @@ class  DPIEyeTracker():
         self.CR_thresh = {'maxx': 0.0, 'minx': 0.0, 'maxy': 0.0, 'miny': 0.0}
         self.P4_speed_thresh = 0.0
         
-
-    def _connectEyetracker(self):
-        """Connect to the OpenIris client."""
-        self.setConnectionState(True)
-        self._client = OpenIrisClient()
-
     def isConnected(self):
         """Check if the OpenIris client is connected.
         """
         return self._client is not None
-
-    def setConnectionState(self, enable):
-        """
-        Set the connection state of the OpenIris client.
-        Parameters:
-            enable (bool): True to connect, False to disconnect.
-        Returns:
-            bool: True if the connection is established, False otherwise."""
-        if enable and self._client is None:
-            self._connectEyetracker()
-        elif enable is False and self._client:
-            self._client = None
-        return self.isConnected()
-
-    def isRecordingEnabled(self):
-        """Check if the OpenIris client is recording.
-        Returns:
-            bool: True if the client is recording, False otherwise.
-        """
-        return self._recording
-
-    def setRecordingState(self, recording):
-        """Set the recording state of the OpenIris client.
-        Parameters:
-            recording (bool): True to start recording, False to stop.
-        Returns:
-            bool: True if the recording state is set, False otherwise.
-        """
-        current_state = self.isRecordingEnabled()
-        if recording and current_state is not True:
-            self._recording = True
-            self.setConnectionState(True)
-        elif recording is not True and current_state:
-            self._recording = False
-            self._latest_data = None
-            self._lastEventTime = 0
-        return self.isRecordingEnabled()
 
     def filter(self, data):
         """Filter the eye data based on calibration values.
@@ -105,8 +61,8 @@ class  DPIEyeTracker():
         if not (self.pupil_area_thresh['min'] <= data.pupil_area <= self.pupil_area_thresh['max']):
             return False
         #check P4
-        if not (self.P4_thresh['minx'] <= data.p4.x <= self.P4_thresh['maxx'] and
-                self.P4_thresh['miny'] <= data.p4.y <= self.P4_thresh['maxy']):
+        if not (self.P4_thresh['minx'] <= data.P4.x <= self.P4_thresh['maxx'] and
+                self.P4_thresh['miny'] <= data.P4.y <= self.P4_thresh['maxy']):
             return False
         #check CR
         if not (self.CR_thresh['minx'] <= data.cr.x <= self.CR_thresh['maxx'] and
@@ -165,9 +121,9 @@ class  DPIEyeTracker():
             if self.cal is None:
                 print("Calibration coefficients are not set.")
                 return None
-            x = data.cr.x - data.p4.x
-            y = data.cr.y - data.p4.y
-            X = np.array([1,x,y,x**2,y**2,x * y])
+            x = data.cr.x - data.P4.x
+            y = data.cr.y - data.P4.y
+            X = np.array([1, x, y, x**2, y**2, x * y])
             Y = X @ self.cal
             return Y
         except Exception as e:
@@ -180,10 +136,10 @@ class  DPIEyeTracker():
         return None, None, 0
     
     def _poll_basic(self):
-        if self.isConnected() and self.isRecordingEnabled():
+        if self.isConnected():
             try:
-                self._latest_data, self._latest_data_time = self._client.fetch_next_data(True)
-                return [self._latest_data, self._latest_data_time]
+                self._latest_data = self._client.fetch_next_data(True)
+                return self._latest_data
             except Exception as e:
                 print(f"Error fetching data from OpenIris client: {e}")
                 return ["Error", time.time()]
@@ -208,7 +164,7 @@ class  DPIEyeTracker():
                 2: No data (if no interpolation and data is filtered, if the client is not connected, recording is not enabled)
                 3: Unfiltered data
         """
-        if self.isConnected() and self.isRecordingEnabled():
+        if self.isConnected():
             self.last_data = self._latest_data
             self.last_data_time = self._latest_data_time
             # Fetch the next data point from the OpenIris client
