@@ -20,7 +20,7 @@ class NumpyEncoder(json.JSONEncoder):
 
 
 #custom imports
-from psychopy.iohub.devices.eyetracker.hw.OpenIrirs.eyetracker import DPIEyeTracker
+from psychopy.iohub.devices.eyetracker.hw.OpenIris.eyetracker import DPIEyeTracker
 
 # psychopy rendering libraries
 from psychopy import visual, layout

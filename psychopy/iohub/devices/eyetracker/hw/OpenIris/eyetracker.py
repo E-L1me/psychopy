@@ -4,10 +4,10 @@ import numpy as np
 import os
 import json
 import time
-from psychopy.iohub.devices.eyetracker.hw.OpenIrirs.calibration import DPICalibrationProcedure
-from psychopy.iohub.devices.eyetracker.hw.OpenIrirs.client import OpenIrisClient
+from psychopy.iohub.devices.eyetracker.hw.OpenIris.calibration import DPICalibrationProcedure
+from psychopy.iohub.devices.eyetracker.hw.OpenIris.client import OpenIrisClient
 
-class  DPIEyeTracker(EyeTrackerDevice):
+class  DPIEyeTracker():
     """
     Eyetracker to run with OpenIris for real-time eyetracking experiments
 
@@ -25,8 +25,6 @@ class  DPIEyeTracker(EyeTrackerDevice):
     """
 
     def __init__(self, *args, **kwargs):
-        EyeTrackerDevice.__init__(self, *args, **kwargs)
-        config = self.getConfiguration()
         self._latest_data = None
         self._latest_data_time = 0
 
@@ -34,6 +32,7 @@ class  DPIEyeTracker(EyeTrackerDevice):
         self._client = None
         self._recording = False
         self._lastEventTime = 0
+        self._configuration = kwargs
         
         self.last_data = None
         self.last_data_time = 0
@@ -179,6 +178,20 @@ class  DPIEyeTracker(EyeTrackerDevice):
         Interpolate missing data based on the last valid data point.
         alpha-beta interpolation or similar methods can be used."""
         return None, None, 0
+    
+    def _poll_basic(self):
+        if self.isConnected() and self.isRecordingEnabled():
+            try:
+                self._latest_data, self._latest_data_time = self._client.fetch_next_data(True)
+                return [self._latest_data, self._latest_data_time]
+            except Exception as e:
+                print(f"Error fetching data from OpenIris client: {e}")
+                return ["Error", time.time()]
+            
+            # return [self.find_pos(self._latest_data), self._latest_data, self._latest_data_time, 3]
+        else:
+                print("Poll Error: not connected or recording is not enabled")
+                return ["Error", time.time()]
 
     def _poll(self, filter=True, interpolate=False): #ADD: log point in separate location if it is filtered out
         """ Poll the OpenIris client for the latest eye data.
