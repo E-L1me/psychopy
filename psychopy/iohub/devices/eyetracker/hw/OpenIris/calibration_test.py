@@ -67,6 +67,7 @@ class DPICalibrationProcedure():
         self.eyetracker = eyetrackerInterface
         self.allow_escape = allow_escape_in_progress
         self.screenSize = [1920, 1080]
+        self.width = self.screenSize[0]
         self.height = self.screenSize[1]
         self.targetClassHasPlayPause = False
         self.targetStim = None
@@ -84,6 +85,7 @@ class DPICalibrationProcedure():
             num_points = target_position_count[cal_type]
             DPICalibrationProcedure.CALIBRATION_POINT_LIST = target_positions[num_points]
         self.cal_target_list = self.CALIBRATION_POINT_LIST
+        self.originalTargetSize = 20
 
         self.window = visual.Window(
             self.screenSize,
@@ -97,7 +99,7 @@ class DPICalibrationProcedure():
         self.window.flip(clearBuffer=True)
 
         self.createGraphics()
-        self._registerEventMonitors()
+        print("graphics screen created")
         self._lastMsgPumpTime = currentTime()
 
         #dataset
@@ -116,42 +118,41 @@ class DPICalibrationProcedure():
             return self._calibration_args[setting]
         
     def getNextMsg(self):
-        if len(self._msg_queue) > 0:
-            self._msg_queue.clear()
-            while msg is not None:
-                try:
-                    msg = self._msg_queue.get_nowait()
-                except queue.Empty:
-                    msg = None
-            return msg
+        msg = None
+        while msg is None:
+            try:
+                msg = self._msg_queue.get_nowait()
+            except queue.Empty:
+                gevent.sleep(0.002)
+                continue
+        return msg
         
     def createGraphics(self):
         """
         """
         color_type = self.getCalibSetting('color_type')
-        unit_type = self.getCalibSetting('unit_type')
 
-        # get attributes to create target
-        targetAttrs = self._calibration_args.get('target_attributes').copy()
-        # Remove unsupported keys
-        for key in ['outer_diameter', 'inner_diameter', 'outer_fill_color', 'outer_line_color',
-                    'outer_stroke_width', 'inner_fill_color', 'inner_line_color', 'inner_stroke_width', 'animate']:
-            targetAttrs.pop(key, None)
-        # Set required arguments for TargetStim
-        targetAttrs['win'] = self.window
-        targetAttrs['pos'] = (0, 0)  # or whatever position you want
-        targetAttrs['size'] = 60     # or whatever size you want
-        targetAttrs['__module__'] = 'psychopy.visual.target'
-        targetAttrs['__class__'] = 'TargetStim'
+        # # get attributes to create target
+        # targetAttrs = self._calibration_args.get('target_attributes').copy()
+        # # Remove unsupported keys
+        # for key in ['outer_diameter', 'inner_diameter', 'outer_fill_color', 'outer_line_color',
+        #             'outer_stroke_width', 'inner_fill_color', 'inner_line_color', 'inner_stroke_width', 'animate']:
+        #     targetAttrs.pop(key, None)
+        # # Set required arguments for TargetStim
+        # targetAttrs['win'] = self.window
+        # targetAttrs['pos'] = (0, 0)  # or whatever position you want
+        # targetAttrs['size'] = 60     # or whatever size you want
+        # targetAttrs['__module__'] = 'psychopy.visual.target'
+        # targetAttrs['__class__'] = 'TargetStim'
 
-        self.targetStim = actualize(targetAttrs)
+        # self.targetStim = actualize(targetAttrs)
         
-        self.targetStim = actualize(targetAttrs)
+        # self.targetStim = actualize(targetAttrs)
 
-        self.originalTargetSize = self.targetStim.size
-        self.targetClassHasPlayPause = hasattr(self.targetStim, 'play') and hasattr(self.targetStim, 'pause')
+        # self.originalTargetSize = self.targetStim.size
+        # self.targetClassHasPlayPause = hasattr(self.targetStim, 'play') and hasattr(self.targetStim, 'pause')
 
-        self.imagetitlestim = None
+        # self.imagetitlestim = None
 
         tctype = color_type
         tcolor = self.getCalibSetting(['text_color'])
@@ -174,6 +175,7 @@ class DPICalibrationProcedure():
 
     def runCalibration(self, _msg_queue):
         self._msg_queue = _msg_queue
+        if self._msg_queue is not None: print(f"_msg_queue connected {self._msg_queue}")
         """Run Calibration Sequence
         """
 
@@ -181,7 +183,10 @@ class DPICalibrationProcedure():
 
         if self.showIntroScreen() is False:
             print("Calibration Procedure Aborted")
+
             return False
+        
+        print("Completed intro screen")
 
         target_delay = self.getCalibSetting('target_delay')
         target_duration = self.getCalibSetting('target_duration')
@@ -194,19 +199,21 @@ class DPICalibrationProcedure():
             random.shuffle(self.cal_target_list)
             self.cal_target_list.insert(0, self.CALIBRATION_POINT_LIST[0])
 
-        left, top, right, bottom = self._eyetracker._display_device.getCoordBounds()
-        w, h = right - left, top - bottom
+        left, right, top, bottom = 0,0, self.width, self.height
+        w, h = self.width, self.height
 
         self.clearCalibrationWindow()
 
-        self.startCalibrationHook()
+        print("starting point rendering")
 
         i = 0
         abort_calibration = False
         for pt in self.cal_target_list:
+            print(f"point {i}")
             if abort_calibration:
                 break
-            x, y = left + w * pt[0], bottom + h*(1.0-pt[1])
+            x, y = 100, 100
+             # x, y = left + w * pt[0], bottom + h*(1.0-pt[1])
             start_time = currentTime()
 
             animate_enable = self.getCalibSetting(['target_attributes', 'animate', 'enable'])
@@ -216,6 +223,8 @@ class DPICalibrationProcedure():
             self.dataset.append({'x': x, 'y': y, 'data': []})
 
             while currentTime()-start_time <= target_delay:
+
+                print(f"animating point {i}")
 
                 if animate_enable and i > 0:
                     t = (currentTime()-start_time) / target_delay
@@ -231,15 +240,19 @@ class DPICalibrationProcedure():
                     self.window.flip(clearBuffer=True)
             
             gevent.sleep(0.001)
-            msg = self.getNextMsg()
+            print(f"checking for q point {i}")
+            msg = self._msg_queue.get_nowait()
             if self.allow_escape and msg == 'q':
                 abort_calibration = True
                 break
 
+            print(f"drawing point {i}")
             self.resetTargetProperties()
             if self.targetClassHasPlayPause and self.targetStim.status != PLAYING:
                 self.targetStim.play()
             self.drawCalibrationTarget((x,y))
+
+
 
             start_time = currentTime()
             stim_size = self.targetStim.size[0]
@@ -296,6 +309,8 @@ class DPICalibrationProcedure():
 
             self.clearCalibrationWindow()
             i += 1
+
+        print("completed point rendering")
         
         if self.targetClassHasPlayPause:
             self.targetStim.pause()
@@ -365,19 +380,23 @@ class DPICalibrationProcedure():
             self.P4_speed_thresh = None
 
 
-    def showIntroScreen(self, text_msg='Press SPACE to Start Calibration; Press ESCAPE to Exit.'):
-
+    def showIntroScreen(self, text_msg='Press SPACE to Start Calibration; Press Q to Exit.'):
+        count = 0
         while True:
             self.textLineStim.setText(text_msg)
             self.textLineStim.draw()
             self.window.flip()
-
+        
             msg = self.getNextMsg()
+            print(f"message: {msg}")
             if msg == 'space':
                 return True
-            elif msg == 'q':
+            elif msg == 'q' or msg == 'esc':
                 return False
-            gevent.sleep(0.001)
+            count += 1
+            if count == 100:
+                return False
+        
     
     def showFinishedScreen(self, text_msg="Calibration Complete. Press 'SPACE' key to continue."):
         
@@ -391,6 +410,9 @@ class DPICalibrationProcedure():
                 return True
             
             gevent.sleep(0.001)
+
+    def clearCalibrationWindow(self):
+        self.window.flip(clearBuffer=True)
     
     def resetTargetProperties(self):
         self.targetStim.size = self.originalTargetSize

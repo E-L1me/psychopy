@@ -210,9 +210,6 @@ class  DPIEyeTracker():
         self.P4_thresh = calibration.P4_thresh
         self.CR_thresh = calibration.CR_thresh
         self.P4_speed_thresh = calibration.P4_speed_thresh
-
-        self.setConnectionState(True)
-        self.setRecordingState(True)
         
         return True
         # except Exception as e:
