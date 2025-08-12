@@ -6,7 +6,22 @@ import json
 import numpy as np
 import gevent
 import yaml
+
+
+
+#custom imports
+from psychopy.iohub.devices.eyetracker.hw.OpenIris.eyetracker_test import DPIEyeTracker
+from psychopy.iohub.devices.eyetracker.hw.OpenIris.calibration_test import KeyboardListener 
 from psychopy.iohub.devices.eyetracker.hw.OpenIris.client_test import OpenIrisClient
+
+# psychopy rendering libraries
+from psychopy import visual, layout
+from psychopy.constants import PLAYING
+from psychopy.iohub.errors import print2err
+from psychopy.iohub.devices import DeviceEvent, Computer
+from psychopy.iohub.constants import EventConstants as EC
+from psychopy.iohub.devices.keyboard import KeyboardInputEvent
+from psychopy.iohub.util import convertCamelToSnake, updateSettings, createCustomCalibrationStim
 
 # Custom JSON encoder for numpy data types
 class NumpyEncoder(json.JSONEncoder):
@@ -19,24 +34,9 @@ class NumpyEncoder(json.JSONEncoder):
             return float(obj)
         return super(NumpyEncoder, self).default(obj)
 
-
-#custom imports
-from psychopy.iohub.devices.eyetracker.hw.OpenIris.eyetracker_test import DPIEyeTracker
-
-# psychopy rendering libraries
-from psychopy import visual, layout
-from psychopy.constants import PLAYING
-from psychopy.iohub.errors import print2err
-from psychopy.iohub.devices import DeviceEvent, Computer
-from psychopy.iohub.constants import EventConstants as EC
-from psychopy.iohub.devices.keyboard import KeyboardInputEvent
-from psychopy.iohub.util import convertCamelToSnake, updateSettings, createCustomCalibrationStim
-
-
-
-
 # --- Shared Resources ---
 screen_position_queue = queue.Queue()
+key_queue = queue.Queue()
 
 # Event to signal threads to stop
 stop_event = threading.Event()
@@ -118,19 +118,29 @@ class Renderer(threading.Thread):
 if __name__ == "__main__":
     with OpenIrisClient() as client:
         eyetracker = DPIEyeTracker(client)
+        
+        keyboard_listener = KeyboardListener(key_queue, stop_event, key_list=['esc', 'space', 'q'])
+        try:
+            keyboard_listener.start()
+        except Exception as e:
+            print(f"Error starting keyboard listener: {e}")
 
-        print(f"calibration: {eyetracker.runSetupProcedure()}")
+        # Read calibration args
+        calibrationargs = yaml.safe_load(open(os.path.join(os.path.dirname(__file__), 'calibration_settings.yaml'), 'r'))   
+
+        print(f"calibration: {eyetracker.runSetupProcedure(key_queue, calibrationargs)}")
 
         collector_thread = DataCollector(
             "CollectorThread", eyetracker, screen_position_queue, stop_event
         )
         renderer_thread = Renderer(
             "RendererThread", screen_position_queue, stop_event
-        )     
+        )
 
         try:
             collector_thread.start()
             renderer_thread.start()
+            
 
             # Let the threads run for a while
             run_duration_seconds = 1
