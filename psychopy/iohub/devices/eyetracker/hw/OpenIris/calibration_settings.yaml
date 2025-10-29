@@ -8,6 +8,8 @@ color_type: rgb255
 screen_background_color: [128, 128, 128]
 text_color: [255, 255, 255]
 target_attributes:
+  __module__: 'psychopy.visual.target'
+  __class__: 'TargetStim'
   animate:
     enable: false
     expansion_ratio: 1.0

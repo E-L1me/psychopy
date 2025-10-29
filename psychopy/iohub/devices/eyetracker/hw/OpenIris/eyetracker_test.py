@@ -4,7 +4,7 @@ import numpy as np
 import os
 import json
 import time
-from psychopy.iohub.devices.eyetracker.hw.OpenIris.calibration import DPICalibrationProcedure
+from psychopy.iohub.devices.eyetracker.hw.OpenIris.calibration_test import DPICalibrationProcedure
 from psychopy.iohub.devices.eyetracker.hw.OpenIris.client_test import OpenIrisClient
 
 class  DPIEyeTracker():
@@ -193,7 +193,7 @@ class  DPIEyeTracker():
                     self._latest_data_time = 0
                 return [None, None, None, 2]
 
-    def runSetupProcedure(self, calibration_args={}):
+    def runSetupProcedure(self, _msg_queue, calibration_args):
         """
         Run calibration and establish filtering values.
         Parameters:
@@ -201,20 +201,17 @@ class  DPIEyeTracker():
         Returns:
             None
         """
-        try:
-            calibration = DPICalibrationProcedure(self, calibration_args)
-            calibration.runCalibration()
-            self.cal = calibration.cal
-            self.screen_thresh = calibration.screen_thresh
-            self.pupil_area_thresh = calibration.pupil_area_thresh
-            self.P4_thresh = calibration.P4_thresh
-            self.CR_thresh = calibration.CR_thresh
-            self.P4_speed_thresh = calibration.P4_speed_thresh
-
-            self.setConnectionState(True)
-            self.setRecordingState(True)
-            
-            return True
-        except Exception as e:
-            print(f"Error during setup procedure: {e}")
-            return False
+        # try:
+        calibration = DPICalibrationProcedure(self, calibration_args)
+        calibration.runCalibration(_msg_queue)
+        self.cal = calibration.cal
+        self.screen_thresh = calibration.screen_thresh
+        self.pupil_area_thresh = calibration.pupil_area_thresh
+        self.P4_thresh = calibration.P4_thresh
+        self.CR_thresh = calibration.CR_thresh
+        self.P4_speed_thresh = calibration.P4_speed_thresh
+        
+        return True
+        # except Exception as e:
+        #     print(f"Error during setup procedure: {e}")
+        #     return False
